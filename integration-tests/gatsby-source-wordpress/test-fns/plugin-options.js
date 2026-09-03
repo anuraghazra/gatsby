@@ -1,8 +1,4 @@
-const {
-  default: fetchGraphql,
-} = require("gatsby-source-wordpress/dist/utils/fetch-graphql")
-
-jest.setTimeout(100000)
+const { fetchGraphql } = require("./test-utils/graphql")
 
 describe(`plugin options`, () => {
   test(`Type.exclude option removes types from the schema`, async () => {

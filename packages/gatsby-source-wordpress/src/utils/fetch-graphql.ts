@@ -3,12 +3,16 @@
 import { IPluginOptions } from "~/models/gatsby-api"
 import { GatsbyReporter } from "./gatsby-types"
 import prettier from "prettier"
-import clipboardy from "clipboardy"
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios"
+import axios, {
+  AxiosRequestConfig,
+  AxiosResponse,
+  RawAxiosRequestHeaders,
+} from "axios"
 import rateLimit, { RateLimitedAxiosInstance } from "axios-rate-limit"
 import { bold } from "chalk"
+import retry from "async-retry"
 import { formatLogMessage } from "./format-log-message"
-import store from "~/store"
+import { getStore } from "~/store"
 import { getPluginOptions } from "./get-gatsby-api"
 import urlUtil from "url"
 import { CODES } from "./report"
@@ -26,6 +30,13 @@ export const moduleHelpers = {
     return http
   },
 }
+
+const errorIs500ish = (e: Error): boolean =>
+  e.message.includes(`Request failed with status code 50`) &&
+  (e.message.includes(`502`) ||
+    e.message.includes(`503`) ||
+    e.message.includes(`500`) ||
+    e.message.includes(`504`))
 
 interface IHandleErrorOptionsInput {
   variables: IJSON
@@ -62,6 +73,8 @@ const handleErrorOptions = async ({
 
   if (pluginOptions.debug.graphql.copyQueryOnError) {
     try {
+      // clipboardy is ESM-only package
+      const { default: clipboardy } = await import(`clipboardy`)
       await clipboardy.write(query)
     } catch (e) {
       // do nothing
@@ -205,16 +218,22 @@ const handleGraphQLErrors = async ({
       errorPath = errorPath.slice(0, -1)
     }
 
-    if (error.debugMessage) {
+    const debugMessage = error.extensions?.debugMessage ?? error.debugMessage
+
+    if (debugMessage) {
       reporter.error(
         formatLogMessage(
-          `Error category: ${error.category} \n\nError: \n  ${error.message} \n\n Debug message: \n  ${error.debugMessage} \n\n Error path: ${errorPath}`
+          `${
+            error.category ? `Error category: ${error.category} \n\n` : ``
+          }Error: \n  ${
+            error.message
+          } \n\n Debug message: \n  ${debugMessage} \n\n Error path: ${errorPath}`
         )
       )
     } else {
       reporter.error(
         formatLogMessage(
-          `(${error.category}) ${
+          `${error.category ? `(${error.category}) ` : ``}${
             error?.locations?.length
               ? error.locations
                   .map(
@@ -256,7 +275,7 @@ const slackChannelSupportMessage = `If you're still having issues, please visit 
 
 const getLowerRequestConcurrencyOptionMessage = (): string => {
   const { requestConcurrency, previewRequestConcurrency, perPage } =
-    store.getState().gatsbyApi.pluginOptions.schema
+    getStore().getState().gatsbyApi.pluginOptions.schema
 
   return `Try reducing the ${bold(
     `requestConcurrency`
@@ -331,12 +350,7 @@ const handleFetchErrors = async ({
     return
   }
 
-  if (
-    e.message.includes(`Request failed with status code 50`) &&
-    (e.message.includes(`502`) ||
-      e.message.includes(`503`) ||
-      e.message.includes(`504`))
-  ) {
+  if (errorIs500ish(e) && !e.message.includes(`500`)) {
     if (`message` in e) {
       console.error(formatLogMessage(new Error(e.message).stack))
     }
@@ -526,6 +540,8 @@ ${slackChannelSupportMessage}`
 
     if (copyHtmlResponseOnError) {
       try {
+        // clipboardy is ESM-only package
+        const { default: clipboardy } = await import(`clipboardy`)
         if (`writeSync` in clipboardy) {
           clipboardy.writeSync(response.data)
         }
@@ -649,7 +665,7 @@ export interface IJSON {
   [key: string]: any
 }
 
-interface IFetchGraphQLHeaders {
+interface IFetchGraphQLHeaders extends RawAxiosRequestHeaders {
   WPGatsbyPreview?: string
   Authorization?: string
   WPGatsbyPreviewUser?: number
@@ -691,7 +707,7 @@ const fetchGraphql = async ({
   isFirstRequest = false,
   forceReportCriticalErrors = false,
 }: IFetchGraphQLInput): Promise<IGraphQLDataResponse> => {
-  const { helpers, pluginOptions } = store.getState().gatsbyApi
+  const { helpers, pluginOptions } = getStore().getState().gatsbyApi
   const limit = pluginOptions?.schema?.requestConcurrency
 
   const { url: pluginOptionsUrl } = pluginOptions
@@ -729,9 +745,24 @@ const fetchGraphql = async ({
       requestOptions.auth = htaccessCredentials
     }
 
-    response = await moduleHelpers
-      .getHttp(limit)
-      .post(url, { query, variables }, requestOptions)
+    response = await retry(
+      (bail: (e: Error) => void) =>
+        moduleHelpers
+          .getHttp(limit)
+          .post(url, { query, variables }, requestOptions)
+          .catch(e => {
+            if (!errorIs500ish(e)) {
+              // for any error that is not a 50x error, we bail, meaning we stop retrying. error will be thrown one level higher
+              bail(e)
+
+              return null
+            } else {
+              // otherwise throwing the error will cause the retry to happen again
+              throw e
+            }
+          }),
+      { retries: 5 }
+    )
 
     if (response.data === ``) {
       throw new Error(`GraphQL request returned an empty string.`)

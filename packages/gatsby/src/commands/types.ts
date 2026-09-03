@@ -3,8 +3,8 @@ import { Store, AnyAction } from "redux"
 import { IGatsbyState } from "../redux/types"
 
 export interface ICert {
-  key: Buffer
-  cert: Buffer
+  key: string
+  cert: string
 }
 
 export interface IDebugInfo {
@@ -19,6 +19,7 @@ export interface IProgram {
   open: boolean
   openTracingConfigFile: string
   port: number
+  // TODO(v5): remove
   proxyPort: number
   host: string
   report: Reporter
@@ -32,7 +33,14 @@ export interface IProgram {
   inspectBrk?: number
   graphqlTracing?: boolean
   verbose?: boolean
+  prefixPaths?: boolean
+  functionsPlatform?: string
+  functionsArch?: string
   setStore?: (store: Store<IGatsbyState, AnyAction>) => void
+  disablePlugins?: Array<{
+    name: string
+    reasons: Array<string>
+  }>
 }
 
 /**

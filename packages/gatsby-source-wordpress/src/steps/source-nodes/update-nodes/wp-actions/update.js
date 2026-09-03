@@ -1,14 +1,17 @@
 import fetchGraphql from "~/utils/fetch-graphql"
-import store from "~/store"
+import { getStore } from "~/store"
 import { formatLogMessage } from "~/utils/format-log-message"
 import chalk from "chalk"
 import { getQueryInfoBySingleFieldName } from "../../helpers"
 import { getGatsbyApi } from "~/utils/get-gatsby-api"
 import { CREATED_NODE_IDS } from "~/constants"
-import fetchReferencedMediaItemsAndCreateNodes from "../../fetch-nodes/fetch-referenced-media-items"
+import fetchReferencedMediaItemsAndCreateNodes, {
+  addImageCDNFieldsToNode,
+} from "../../fetch-nodes/fetch-referenced-media-items"
 
 import { dump } from "dumper.js"
 import { atob } from "atob"
+import { camelCase } from "lodash"
 
 import {
   buildTypeName,
@@ -16,12 +19,13 @@ import {
 } from "~/steps/create-schema-customization/helpers"
 import { processNode } from "~/steps/source-nodes/create-nodes/process-node"
 import { getPersistentCache, setPersistentCache } from "~/utils/cache"
+import { needToTouchNodes } from "../../../../utils/gatsby-features"
 
 export const fetchAndCreateSingleNode = async ({
   singleName,
   id,
   actionType,
-  cachedNodeIds,
+  cachedNodeIds = [],
   token = null,
   isPreview = false,
   isDraft = false,
@@ -73,7 +77,7 @@ export const fetchAndCreateSingleNode = async ({
     errorContext: `Error occurred while updating a single "${singleName}" node.`,
   })
 
-  let remoteNode = data[singleName]
+  let remoteNode = data[singleName] || data[camelCase(singleName)]
 
   if (!data || !remoteNode) {
     reporter.warn(
@@ -100,6 +104,11 @@ export const fetchAndCreateSingleNode = async ({
     singleName,
     id,
   })
+
+  if (isPreview && `slug` in remoteNode && !remoteNode.slug) {
+    // sometimes preview nodes do not have a slug - but some users will use slugs to build page urls. So we should make sure we have something for the slug.
+    remoteNode.slug = id
+  }
 
   if (isPreview) {
     const existingNode = getNode(id)
@@ -156,13 +165,13 @@ export const createSingleNode = async ({
   data,
   cachedNodeIds,
 }) => {
-  const state = store.getState()
+  const state = getStore().getState()
   const { helpers, pluginOptions } = state.gatsbyApi
   const { wpUrl } = state.remoteSchema
 
   const { typeInfo } = getQueryInfoBySingleFieldName(singleName)
 
-  if (!cachedNodeIds) {
+  if (!cachedNodeIds && needToTouchNodes) {
     cachedNodeIds = await getPersistentCache({ key: CREATED_NODE_IDS })
   }
 
@@ -189,16 +198,19 @@ export const createSingleNode = async ({
 
   const builtTypename = buildTypeName(typeInfo.nodesTypeName)
 
-  let remoteNode = {
-    ...processedNode,
-    __typename: builtTypename,
-    id: id,
-    parent: null,
-    internal: {
-      contentDigest: createContentDigest(updatedNodeContent),
-      type: builtTypename,
+  let remoteNode = addImageCDNFieldsToNode(
+    {
+      ...processedNode,
+      __typename: builtTypename,
+      id: id,
+      parent: null,
+      internal: {
+        contentDigest: createContentDigest(updatedNodeContent),
+        type: builtTypename,
+      },
     },
-  }
+    pluginOptions
+  )
 
   const typeSettings = getTypeSettingsByType({
     name: typeInfo.nodesTypeName,
@@ -224,7 +236,7 @@ export const createSingleNode = async ({
       typeSettings,
       buildTypeName,
       type: typeInfo.nodesTypeName,
-      wpStore: store,
+      wpStore: getStore(),
     })) || {}
 
     additionalNodeIds = [
@@ -248,12 +260,11 @@ export const createSingleNode = async ({
 
   if (remoteNode) {
     actions.createNode(remoteNode)
+  }
 
+  if (remoteNode && needToTouchNodes) {
     cachedNodeIds.push(remoteNode.id)
-
-    if (additionalNodeIds && additionalNodeIds.length) {
-      additionalNodeIds.forEach(id => cachedNodeIds.push(id))
-    }
+    additionalNodeIds?.forEach(id => cachedNodeIds.push(id))
 
     await setPersistentCache({ key: CREATED_NODE_IDS, value: cachedNodeIds })
   }
@@ -280,7 +291,7 @@ const wpActionUPDATE = async ({ helpers, wpAction }) => {
 
   const cachedNodeIds = await getPersistentCache({ key: CREATED_NODE_IDS })
 
-  const state = store.getState()
+  const state = getStore().getState()
   const {
     gatsbyApi: {
       pluginOptions: { verbose },
@@ -293,13 +304,18 @@ const wpActionUPDATE = async ({ helpers, wpAction }) => {
   const existingNode = await getNode(nodeId)
 
   if (wpAction.referencedNodeStatus !== `publish`) {
-    // if the post status isn't publish anymore, we need to remove the node
-    // by removing it from cached nodes so it's garbage collected by Gatsby
-    const validNodeIds = cachedNodeIds.filter(cachedId => cachedId !== nodeId)
+    if (needToTouchNodes) {
+      // if the post status isn't publish anymore, we need to remove the node
+      // by removing it from cached nodes so it's garbage collected by Gatsby
+      const validNodeIds = cachedNodeIds.filter(cachedId => cachedId !== nodeId)
 
-    await setPersistentCache({ key: CREATED_NODE_IDS, value: validNodeIds })
+      await setPersistentCache({ key: CREATED_NODE_IDS, value: validNodeIds })
+    }
 
     if (existingNode) {
+      // calling touchNode here ensures owners is populated before we delete.
+      // In some cases calling delete node without touching the node first throws an error. this is a bug in Gatsby that has been fixed but this code remains to be backwards compatible with earlier versions that have the bug still.
+      // TODO remove in the next major version
       await actions.touchNode(existingNode)
       await actions.deleteNode(existingNode)
       reportUpdate({ setAction: `DELETE` })

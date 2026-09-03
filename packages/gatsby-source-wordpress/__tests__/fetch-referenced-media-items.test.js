@@ -3,7 +3,7 @@ jest.mock(`../dist/utils/fetch-graphql`, () => jest.fn())
 import fetchGraphql from "../dist/utils/fetch-graphql"
 import { fetchMediaItemsBySourceUrl, fetchMediaItemsById } from "../dist/steps/source-nodes/fetch-nodes/fetch-referenced-media-items"
 import { createContentDigest } from "gatsby-core-utils"
-import store from "../dist/store"
+import { getStore, createStore, asyncLocalStorage } from "../dist/store"
 
 const fakeReporter = {
   panic: msg => {
@@ -16,17 +16,27 @@ const fakeReporter = {
 
 const getNodeMock = jest.fn()
 
+const btoa = (input) => Buffer.from(input).toString(`base64`)
 
+const store = {store: createStore(), key: `test`}
+
+const runWithGlobalStore = async (fn) => {
+  asyncLocalStorage.run(store, fn)
+}
+
+const withGlobalStore = (fn) => () => {
+     runWithGlobalStore(fn)
+  }
 describe(`fetch-referenced-media-items`, () => {
-  beforeAll(() => {
-    store.dispatch.gatsbyApi.setState({
+  beforeAll(withGlobalStore(() => {
+    getStore().dispatch.gatsbyApi.setState({
       pluginOptions: {
         schema: {
           perPage: 2,
         },
       },
     })
-  })
+  }))
 
   afterEach(() => {
     jest.resetAllMocks()
@@ -53,7 +63,7 @@ const createApi = () => {
   }
 }
 
-    it(`should properly download multiple pages`, async () => {
+    it(`should properly download multiple pages`, withGlobalStore(async () => {
       fetchGraphql
         .mockResolvedValueOnce({
           data: {
@@ -96,11 +106,11 @@ const createApi = () => {
         helpers: createApi(),
       })
       expect(result).toHaveLength(2)
-    })
+    }))
 
 
-    it(`should properly download a single page if there is only 1`, async () => {
-      store.dispatch.gatsbyApi.setState({
+    it(`should properly download a single page if there is only 1`, withGlobalStore(async () => {
+      getStore().dispatch.gatsbyApi.setState({
         pluginOptions: {
           schema: {
             perPage: 5,
@@ -113,26 +123,26 @@ const createApi = () => {
           data: {
             mediaItem__index_0: {
               id: 0,
-              mediaItemUrl: `https://wordpress.host/wp-content/uploads/2018/05/file1.mp3`,
+              mediaItemUrl: `https://wordpress.host/wp-content/uploads/2018/05/single-page-file1.mp3`,
             },
             mediaItem__index_1: {
               id: 1,
-              mediaItemUrl: `https://wordpress.host/wp-content/uploads/2018/05/file1.mp3`,
+              mediaItemUrl: `https://wordpress.host/wp-content/uploads/2018/05/single-page-file1.mp3`,
             },
           },
         })
 
       const result = await fetchMediaItemsBySourceUrl({
         mediaItemUrls: [
-          `https://wordpress.host/wp-content/uploads/2018/05/file1.mp3`,
-          `https://wordpress.host/wp-content/uploads/2018/05/file2.mp3`,
+          `https://wordpress.host/wp-content/uploads/2018/05/single-page-file1.mp3`,
+          `https://wordpress.host/wp-content/uploads/2018/05/single-page-file2.mp3`,
         ],
         selectionSet: `id\nmediaItemUrl`,
         createContentDigest,
         helpers: createApi(),
       })
       expect(result).toHaveLength(2)
-    })
+    }))
   })
 
 
@@ -151,7 +161,7 @@ const createApi = () => {
       }
     }
 
-    it(`should properly download multiple pages of ids`, async () => {
+    it(`should properly download multiple pages of ids`, withGlobalStore(async () => {
       getNodeMock
       .mockReturnValueOnce(undefined)
       .mockReturnValueOnce(undefined)
@@ -173,7 +183,7 @@ const createApi = () => {
               localFile: {
                 id: 3,
               }})
-      store.dispatch.gatsbyApi.setState({
+      getStore().dispatch.gatsbyApi.setState({
         pluginOptions: {
           schema: {
             perPage: 2,
@@ -228,10 +238,10 @@ const createApi = () => {
         helpers: createApi(),
       })
       expect(result).toHaveLength(4)
-    })
+    }))
 
 
-    xit(`should properly download a single page of ids if there is only 1`, async () => {
+    it(`should properly download a single page of ids if there is only 1`, withGlobalStore(async () => {
       getNodeMock
       .mockReturnValueOnce(undefined)
       .mockReturnValueOnce(undefined)
@@ -244,7 +254,7 @@ const createApi = () => {
             id: 1,
           }})
 
-      store.dispatch.gatsbyApi.setState({
+      getStore().dispatch.gatsbyApi.setState({
         pluginOptions: {
           schema: {
             perPage: 5,
@@ -284,6 +294,6 @@ const createApi = () => {
         helpers: createApi(),
       })
       expect(result).toHaveLength(2)
-    })
+    }))
   })
 })

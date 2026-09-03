@@ -106,16 +106,6 @@ Get the PDF: <a href="/gatsby-cheat-sheet.pdf" download>gatsby-cheat-sheet.pdf</
       </tr>
       <tr>
         <td>
-          <p>Quick Reference Guide</p>
-        </td>
-        <td>
-          <p>
-            <a href="https://gatsby.dev/recipes">gatsby.dev/recipes</a>
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td>
           <p>Adding Images</p>
         </td>
         <td>
@@ -190,9 +180,6 @@ Get the PDF: <a href="/gatsby-cheat-sheet.pdf" download>gatsby-cheat-sheet.pdf</
   </table>
   <p>
     <a href="https://www.gatsbyjs.com/">gatsbyjs.com</a>
-  </p>
-  <p>
-    <a href="https://twitter.com/gatsbyjs">twitter.com/gatsbyjs</a>
   </p>
   <h2>Gatsby CLI Commands</h2>
   <p>

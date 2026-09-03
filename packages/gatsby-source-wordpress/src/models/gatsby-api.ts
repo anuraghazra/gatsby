@@ -5,6 +5,8 @@ import { menuBeforeChangeNode } from "~/steps/source-nodes/before-change-node/me
 import { cloneDeep } from "lodash"
 import { inPreviewMode } from "~/steps/preview"
 import { usingGatsbyV4OrGreater } from "~/utils/gatsby-version"
+import { createModel } from "@rematch/core"
+import { IRootModel } from "."
 
 export interface IPluginOptionsPreset {
   presetName: string
@@ -104,6 +106,7 @@ export interface IPluginOptions {
     fallbackImageMaxWidth?: number
     imageQuality?: number
     createStaticFiles?: boolean
+    placeholderType?: `blurred` | `dominantColor`
   }
   presets?: Array<IPluginOptionsPreset>
   type?: {
@@ -123,6 +126,8 @@ export interface IPluginOptions {
         maxFileSizeBytes?: number
         requestConcurrency?: number
       }
+
+      placeholderSizeName?: string
     }
   }
 }
@@ -191,6 +196,8 @@ const defaultPluginOptions: IPluginOptions = {
     //
     // this adds image options to images in HTML fields when html.useGatsbyImage is also set
     gatsbyImageOptions: {},
+
+    placeholderType: `blurred`,
   },
   presets: [previewOptimizationPreset],
   type: {
@@ -226,6 +233,8 @@ const defaultPluginOptions: IPluginOptions = {
       exclude: true,
     },
     MediaItem: {
+      exclude: false,
+      placeholderSizeName: `gatsby-image-placeholder`,
       lazyNodes: false,
       createFileNodes: true,
       localFile: {
@@ -300,36 +309,6 @@ const defaultPluginOptions: IPluginOptions = {
        */
       beforeChangeNode: menuBeforeChangeNode,
     },
-    // the next two types can't be sourced in Gatsby properly yet
-    // @todo instead of excluding these manually, auto exclude them
-    // based on how they behave (no single node query available)
-    EnqueuedScript: {
-      exclude: true,
-    },
-    EnqueuedStylesheet: {
-      exclude: true,
-    },
-    EnqueuedAsset: {
-      exclude: true,
-    },
-    ContentNodeToEnqueuedScriptConnection: {
-      exclude: true,
-    },
-    ContentNodeToEnqueuedStylesheetConnection: {
-      exclude: true,
-    },
-    TermNodeToEnqueuedScriptConnection: {
-      exclude: true,
-    },
-    TermNodeToEnqueuedStylesheetConnection: {
-      exclude: true,
-    },
-    UserToEnqueuedScriptConnection: {
-      exclude: true,
-    },
-    UserToEnqueuedStylesheetConnection: {
-      exclude: true,
-    },
   },
 }
 
@@ -339,7 +318,7 @@ export interface IGatsbyApiState {
   activePluginOptionsPresets?: Array<IPluginOptionsPreset>
 }
 
-const gatsbyApi = {
+const gatsbyApi = createModel<IRootModel>()({
   state: {
     helpers: {},
     pluginOptions: defaultPluginOptions,
@@ -382,6 +361,9 @@ const gatsbyApi = {
       return state
     },
   },
-}
+  effects: () => {
+    return {}
+  },
+})
 
 export default gatsbyApi

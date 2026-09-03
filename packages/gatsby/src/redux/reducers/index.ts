@@ -1,3 +1,4 @@
+import { typeOwnersReducer } from "./type-owners"
 import { nodesReducer } from "./nodes"
 import { reducer as logReducer } from "gatsby-cli/lib/reporter/redux/reducers/logs"
 import { pagesReducer } from "./pages"
@@ -28,8 +29,16 @@ import { queriesReducer } from "./queries"
 import { visitedPagesReducer } from "./visited-page"
 import { htmlReducer } from "./html"
 import { functionsReducer } from "./functions"
+import { telemetryReducer } from "./telemetry"
 import { nodeManifestReducer } from "./node-manifest"
 import { reducer as pageTreeReducer } from "gatsby-cli/lib/reporter/redux/reducers/page-tree"
+import { setRequestHeadersReducer } from "./set-request-headers"
+import { statefulSourcePluginsReducer } from "./stateful-source-plugins"
+import { slicesReducer } from "./slices"
+import { componentsUsingSlicesReducer } from "./components-using-slices"
+import { slicesByTemplateReducer } from "./slices-by-template"
+import { adapterReducer } from "./adapter"
+import { remoteFileAllowedUrlsReducer } from "./remote-file-allowed-urls"
 
 /**
  * @property exports.nodesTouched Set<string>
@@ -37,6 +46,7 @@ import { reducer as pageTreeReducer } from "gatsby-cli/lib/reporter/redux/reduce
 export {
   definitionsReducer as definitions,
   programReducer as program,
+  typeOwnersReducer as typeOwners,
   nodesReducer as nodes,
   nodesByTypeReducer as nodesByType,
   resolvedNodesCacheReducer as resolvedNodesCache,
@@ -67,4 +77,12 @@ export {
   functionsReducer as functions,
   nodeManifestReducer as nodeManifests,
   pageTreeReducer as pageTree,
+  setRequestHeadersReducer as requestHeaders,
+  statefulSourcePluginsReducer as statefulSourcePlugins,
+  slicesReducer as slices,
+  componentsUsingSlicesReducer as componentsUsingSlices,
+  slicesByTemplateReducer as slicesByTemplate,
+  telemetryReducer as telemetry,
+  adapterReducer as adapter,
+  remoteFileAllowedUrlsReducer as remoteFileAllowedUrls,
 }

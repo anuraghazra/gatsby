@@ -1,31 +1,49 @@
 orbs:
-  win: circleci/windows@2.4.0
-  slack: circleci/slack@3.4.1
+  win: circleci/windows@2.4.1
 
 executors:
   node:
     parameters:
       image:
         type: string
-        default: "14.15.0"
+        default: "24.11.1"
+      gatsby_major:
+        type: string
+        default: "5"
     docker:
       - image: cimg/node:<< parameters.image >>
     environment:
       GATSBY_CPU_COUNT: 2
+      COMPILER_OPTIONS: GATSBY_MAJOR=<< parameters.gatsby_major >>
+      NODE_NO_WARNINGS: 1
+      BROWSERSLIST_IGNORE_OLD_DATA: true
+      # See https://sharp.pixelplumbing.com/install/#custom-libvips
+      # libvips may or may not be installed in the CircleCI images we're using, but we
+      # don't want to use it regardless, for consistency (and because it can cause problems)
+      SHARP_IGNORE_GLOBAL_LIBVIPS: 1
 
-aliases:
-  e2e-executor: &e2e-executor
+  e2e18:
     docker:
-      - image: cypress/browsers:node14.15.0-chrome86-ff82
+      - image: "cypress/browsers:node-18.20.3-chrome-125.0.6422.141-1-ff-126.0.1-edge-125.0.2535.85-1"
     environment:
       GATSBY_CPU_COUNT: 2
+      VERBOSE: 1
 
-  restore_cache: &restore_cache
-    restore_cache:
-      name: Restore node_modules cache
-      keys:
-        - yarn-cypress-cache-{{ checksum "yarn.lock" }}
+  e2e22:
+    docker:
+      - image: "cypress/browsers:node-22.21.0-chrome-141.0.7390.107-1-ff-144.0-edge-141.0.3537.92-1"
+    environment:
+      GATSBY_CPU_COUNT: 2
+      VERBOSE: 1
 
+  e2e24:
+    docker:
+      - image: "cypress/browsers:node-24.11.1-chrome-142.0.7444.175-1-ff-145.0.1-edge-142.0.3595.90-1"
+    environment:
+      GATSBY_CPU_COUNT: 2
+      VERBOSE: 1
+
+aliases:
   install_node_modules: &install_node_modules
     run:
       name: Install node modules
@@ -39,14 +57,7 @@ aliases:
   validate_renovate: &validate_renovate
     run:
       name: Validate renovate-config
-      command: (node scripts/renovate-config-generator.js && (git status --porcelain renovate.json5 | grep "M renovate.json5")) && (echo "Please run \"node scripts/renovate-config-generator.js\" to update renovate.json5" && exit 1) || npx -p renovate renovate-config-validator .
-
-  persist_cache: &persist_cache
-    save_cache:
-      name: Save node modules cache
-      key: yarn-cypress-cache-{{ checksum "yarn.lock" }}
-      paths:
-        - ~/.cache
+      command: (node scripts/renovate-config-generator.js && (git status --porcelain renovate.json5 | grep "M renovate.json5")) && (echo "Please run \"node scripts/renovate-config-generator.js\" to update renovate.json5" && exit 1) || npx -p renovate@31.28.5 renovate-config-validator .
 
   attach_to_bootstrap: &attach_to_bootstrap
     attach_workspace:
@@ -79,11 +90,6 @@ aliases:
           steps:
             - run: npm rebuild
       - run:
-          name: Step debug info
-          command: |
-            yarn list react
-            yarn why lmdb-store
-      - run:
           name: Run tests
           command: yarn jest --ci --runInBand  $(yarn -s jest --listTests | sed 's/\/home\/circleci\/project\///g' | circleci tests split)
           environment:
@@ -91,6 +97,7 @@ aliases:
             GENERATE_JEST_REPORT: "true"
             JEST_JUNIT_OUTPUT_DIR: ./test-results/jest-node/
             JEST_JUNIT_OUTPUT_NAME: results.xml
+            JEST_JUNIT_REPORT_TEST_SUITE_ERRORS: "true"
       - store_test_results:
           path: ./test-results/jest-node/
 
@@ -100,53 +107,107 @@ aliases:
         ignore:
           - master
           - /docs.+/
+    matrix:
+      parameters:
+        node_version: ["18.2.0", "24.11.1"]
+        e2e_executor_suffix: ["18", "24"]
+      exclude:
+        - node_version: "18.2.0"
+          e2e_executor_suffix: "24"
+        - node_version: "24.11.1"
+          e2e_executor_suffix: "18"
     requires:
-      - lint
-      - typecheck
-      - unit_tests_node14
+      - bootstrap-<< matrix.node_version >>
 
-  e2e_tests_production_runtime_alias: &e2e_tests_production_runtime_alias
-    <<: *e2e-executor
-    parameters:
-      nightly:
-        type: boolean
-        default: false
-    steps:
-      - e2e-test:
-          test_path: e2e-tests/production-runtime
-          test_command: CYPRESS_PROJECT_ID=is8aoq CYPRESS_RECORD_KEY=cb4708d2-1578-4665-9a07-c59f8db28d91 yarn test && CYPRESS_PROJECT_ID=htpvkv CYPRESS_RECORD_KEY=0d734841-c613-41d2-86e5-df0b5968f93f yarn test:offline
-          skip_file_change_test: << parameters.nightly >>
-      - notify-status:
-          condition: << parameters.nightly >>
+  # netlify-cli requires node>=22.13.0, so the adapters e2e tests run on node 22
+  # where the rest of the e2e suite still covers node 18
+  adapters-e2e-test-workflow: &adapters-e2e-test-workflow
+    filters:
+      branches:
+        ignore:
+          - master
+          - /docs.+/
+    matrix:
+      parameters:
+        node_version: ["22.21.0", "24.11.1"]
+        e2e_executor_suffix: ["22", "24"]
+      exclude:
+        - node_version: "22.21.0"
+          e2e_executor_suffix: "24"
+        - node_version: "24.11.1"
+          e2e_executor_suffix: "22"
+    requires:
+      - bootstrap-<< matrix.node_version >>
 
-  e2e_tests_development_runtime_alias: &e2e_tests_development_runtime_alias
-    <<: *e2e-executor
-    parameters:
-      nightly:
-        type: boolean
-        default: false
-    environment:
-      CYPRESS_PROJECT_ID: s3j3qj
-      CYPRESS_RECORD_KEY: 3904ca0c-bc98-47d9-8371-b68c5e81fb9b
-    steps:
-      - e2e-test:
-          test_path: e2e-tests/development-runtime
-          skip_file_change_test: << parameters.nightly >>
-      - notify-status:
-          condition: << parameters.nightly >>
+  integration-test-workflow: &integration-test-workflow
+    filters:
+      branches:
+        ignore:
+          - master
+          - /docs.+/
+    matrix:
+      parameters:
+        node_version: ["18.2.0", "24.11.1"]
+    requires:
+      - bootstrap-<< matrix.node_version >>
 
 commands:
-  notify-status:
+  restore_yarn_cache:
     parameters:
-      condition:
-        type: boolean
-        default: false
+      node_version:
+        type: string
     steps:
-      - when:
-          condition: << parameters.condition >>
-          steps:
-            - slack/status:
-                channel: eng-react-integration-status
+      - restore_cache:
+          name: Restore node_modules cache
+          keys:
+            - yarn-cypress-cache-{{ checksum "yarn.lock" }}-<< parameters.node_version >>
+
+  persist_yarn_cache:
+    parameters:
+      node_version:
+        type: string
+    steps:
+      - save_cache:
+          name: Save node modules cache
+          key: yarn-cypress-cache-{{ checksum "yarn.lock" }}-<< parameters.node_version >>
+          paths:
+            - ~/.cache
+
+  # Netlify adapter e2e tests require NETLIFY_AUTH_TOKEN which is unavailable
+  # for PRs from forks (CircleCI withholds secrets from fork builds). Detect
+  # this early and halt the job with a clear message so maintainers know to
+  # re-run these tests from the main repo.
+  check_netlify_credentials:
+    steps:
+      - run:
+          name: "SKIP CHECK: Netlify credentials (unavailable for fork PRs)"
+          command: |
+            if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+              echo ""
+              echo "============================================================"
+              echo ""
+              echo "  SKIPPING: Netlify credentials are not available."
+              echo ""
+              echo "  This is expected for pull requests from forks."
+              echo "  The adapter e2e tests deploy to Netlify and cannot"
+              echo "  run without credentials."
+              echo ""
+              echo "  Maintainers: to run these tests, push this branch"
+              echo "  to the main repository and re-run CI."
+              echo ""
+              echo "============================================================"
+              echo ""
+              circleci-agent step halt
+            fi
+
+  fix_chrome_signing_key:
+    # See https://www.google.com/linuxrepositories/.
+    # This is needed for Cypress Chrome images. The node 18 versions are no longer receiving updates.
+    description: "Refresh the Google Chrome apt signing key"
+    steps:
+      - run:
+          name: Fix Google Chrome apt signing key
+          command: wget -q -O /etc/apt/trusted.gpg.d/google-chrome.asc https://dl.google.com/linux/linux_signing_key.pub
 
   e2e-test:
     parameters:
@@ -161,40 +222,71 @@ commands:
       test_command:
         type: string
         default: "yarn test"
+      react_version:
+        type: string
+        default: ""
+      slices:
+        type: boolean
+        default: true # allow disabling it later when setting up partial hydration tests
+      pre_gatsby_dev_command:
+        type: string
+        default: ""
     steps:
       - checkout
       # In case of failure, add these steps again. Cache probably got deleted
-      #- <<: *restore_cache
+      #- restore_yarn_cache:
+      #    node_version: << parameters.node_version >>
       #- <<: *install_node_modules
-      #- <<: *persist_cache
+      #- persist_yarn_cache:
+      #    node_version: << parameters.node_version >>
       - unless:
           condition: << parameters.skip_file_change_test >>
           steps:
             - run: ./scripts/assert-changed-files.sh "<< parameters.trigger_pattern >>|<< parameters.test_path >>/*"
 
+      - when:
+          condition: << parameters.slices >>
+          steps:
+            - run: echo 'export GATSBY_SLICES="true"' >> "$BASH_ENV"
+
       - <<: *attach_to_bootstrap
+      - when:
+          condition:
+            not:
+              equal: ["", << parameters.react_version >>]
+          steps:
+            - run:
+                name: Upgrade React to << parameters.react_version >>
+                command: "REACT_VERSION=<< parameters.react_version >> TEST_PATH=<< parameters.test_path >> node ./scripts/upgrade-react"
       - run:
-          name: Install gatsby-dev
-          command: yarn global add gatsby-dev-cli
+          name: Install gatsby-dev@next
+          command: yarn global add gatsby-dev-cli@next --ignore-engines
       - run:
           name: Run tests (using defaults)
-          command: ./scripts/e2e-test.sh "<< parameters.test_path >>" "<< parameters.test_command >>"
+          command: ./scripts/e2e-test.sh "<< parameters.test_path >>" "<< parameters.test_command >>" "<< parameters.pre_gatsby_dev_command >>"
 
 version: 2.1
 
 jobs:
   bootstrap:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - checkout
       - run: ./scripts/assert-changed-files.sh "packages/*|(e2e|integration)-tests/*|.circleci/*|scripts/e2e-test.sh|yarn.lock"
-      # python 2 is not built in and node-gyp needs it to build lmdb
-      - run: sudo apt-get update && sudo apt-get install python -y
-      - <<: *restore_cache
+      # python is not built in and node-gyp needs it to build lmdb
+      - run: sudo apt-get update && sudo apt-get install -y python3 python-is-python3
+      - restore_yarn_cache:
+          node_version: << parameters.node_version >>
       - <<: *install_node_modules
       - <<: *check_lockfile
       - <<: *validate_renovate
-      - <<: *persist_cache
+      - persist_yarn_cache:
+          node_version: << parameters.node_version >>
       - run: yarn bootstrap -- concurrency=2
       # Persist the workspace again with all packages already built
       - persist_to_workspace:
@@ -215,7 +307,6 @@ jobs:
             sed -i ':a;N;$!ba;s/,\n\s*"workspaces":\s\[[^]]*]/,"workspaces":\["packages\/babel-preset-gatsby"\]/g' package.json
       - <<: *install_node_modules
       - run: yarn lint:code
-      - run: yarn lint:docs
       - run: yarn lint:other
 
   typecheck:
@@ -228,79 +319,134 @@ jobs:
       - run: yarn typecheck
       - run: yarn check-repo-fields
 
-  unit_tests_node14:
-    # GATSBY_EXPERIMENTAL_LMDB_INDEXES is not activated yet
+  unit_tests_node18:
     executor:
       name: node
-      image: "14.15.0"
+      image: "18.2.0"
+    <<: *test_template
+
+  unit_tests_node20:
+    executor:
+      name: node
+      image: "20.19"
+    <<: *test_template
+
+  unit_tests_node24:
+    executor:
+      name: node
+      image: "24.11.1"
     <<: *test_template
 
   integration_tests_gatsby_source_wordpress:
+    parameters:
+      node_version:
+        type: string
     machine:
-      image: "ubuntu-2004:202107-02"
+      image: "ubuntu-2204:2023.02.1"
     steps:
       - run:
           command: |
-            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-            echo ' [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
-      - run: nvm install v14
-      - run: nvm alias default v14
-      - run: nvm use v14
+            echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+            echo nvm install v<< parameters.node_version >> >> $BASH_ENV
+            echo nvm alias default v<< parameters.node_version >> >> $BASH_ENV
+      - run: |
+          node -v
       - run: npm i -g yarn@1.22.11
       - e2e-test:
           test_path: integration-tests/gatsby-source-wordpress
 
-  integration_tests_node_manifest:
-    executor: node
-    steps:
-      - e2e-test:
-          test_path: integration-tests/node-manifest
-
   integration_tests_long_term_caching:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/long-term-caching
+          test_command: yarn test
 
   integration_tests_cache_resilience:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/cache-resilience
+          test_command: yarn test
 
   integration_tests_gatsby_pipeline:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/gatsby-pipeline
+          test_command: yarn test
 
   integration_tests_gatsby_cli:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/gatsby-cli
-          trigger_pattern: packages/gatsby-cli/*|packages/gatsby/*|integration-tests/gatsby-cli/*|scripts/e2e-test.sh
+          test_command: yarn test
 
   integration_tests_structured_logging:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/structured-logging
+          test_command: yarn test
 
   integration_tests_artifacts:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/artifacts
+          test_command: yarn test
 
   integration_tests_ssr:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/ssr
+          test_command: yarn test
 
   integration_tests_images:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/images
@@ -309,23 +455,71 @@ jobs:
           path: integration-tests/images/__diff_output__
 
   integration_tests_functions:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
     steps:
       - e2e-test:
           test_path: integration-tests/functions
           test_command: yarn test
 
+  integration_tests_head_function_export:
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
+    steps:
+      - e2e-test:
+          test_path: integration-tests/head-function-export
+          test_command: yarn test
+
+  integration_tests_esm_in_gatsby_files:
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
+    steps:
+      - e2e-test:
+          test_path: integration-tests/esm-in-gatsby-files
+          test_command: yarn test
+
+  integration_tests_lmdb_regeneration:
+    parameters:
+      node_version:
+        type: string
+    executor:
+      name: node
+      image: << parameters.node_version >>
+    steps:
+      - e2e-test:
+          test_path: integration-tests/lmdb-regeneration
+          test_command: yarn test
+
   e2e_tests_path-prefix:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: pzj19c
-      CYPRESS_RECORD_KEY: c9ea1b91-eed6-4bac-be41-eccd75a48969
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - e2e-test:
           test_path: e2e-tests/path-prefix
 
   e2e_tests_pnp:
-    executor: node
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - checkout
       - run: ./scripts/assert-changed-files.sh "packages/*|.circleci/*"
@@ -335,6 +529,9 @@ jobs:
           working_directory: ~/project
       - run:
           command: cp -r ./starters/default /tmp/e2e-tests/gatsby-pnp
+          working_directory: ~/project
+      - run: # default doesn't have API functions so let's get some of those
+          command: cp -r ./e2e-tests/adapters/src/api /tmp/e2e-tests/gatsby-pnp/src/api
           working_directory: ~/project
       - run:
           command: touch yarn.lock
@@ -351,14 +548,37 @@ jobs:
       - run: # Don't allow any fallback to root dependencies
           command: yarn config set pnpFallbackMode none
           working_directory: /tmp/e2e-tests/gatsby-pnp
-      - run: # Forces to use the local packages
-          command: yarn link --all --private ~/project
-          working_directory: /tmp/e2e-tests/gatsby-pnp
-      - run:
-          command: yarn install
-          working_directory: /tmp/e2e-tests/gatsby-pnp
-      - run:
+      - run: # Install before custom registry server is set
           command: yarn add start-server-and-test@^1.11.0
+          working_directory: /tmp/e2e-tests/gatsby-pnp
+      - run: # Set the local registry to gatsby-dev-cli registry
+          command: yarn config set npmRegistryServer http://localhost:4873
+          working_directory: /tmp/e2e-tests/gatsby-pnp
+      - run: # Allow localhost registry
+          command: |
+            echo -e 'unsafeHttpWhitelist:\n  - "localhost"' >> .yarnrc.yml
+          working_directory: /tmp/e2e-tests/gatsby-pnp
+      - run: # Exempt locally published packages from Yarn's minimum release age gate
+          command: yarn config set --json npmPreapprovedPackages "$(node ~/project/scripts/list-publishable-packages.js)"
+          working_directory: /tmp/e2e-tests/gatsby-pnp
+      - run: # Allow build scripts for packages that need them (Yarn 4 disables them by default)
+          command: |
+            node -e '
+              const fs = require("fs");
+              const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+              pkg.dependenciesMeta = {
+                gatsby: { built: true },
+                "gatsby-cli": { built: true },
+                sharp: { built: true },
+              };
+              fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
+            '
+          working_directory: /tmp/e2e-tests/gatsby-pnp
+      - run: # Set project dir
+          command: node ~/project/packages/gatsby-dev-cli/dist/index.js --set-path-to-repo ~/project
+          working_directory: /tmp/e2e-tests/gatsby-pnp
+      - run: # Copy over packages
+          command: node ~/project/packages/gatsby-dev-cli/dist/index.js --force-install --scan-once --external-registry
           working_directory: /tmp/e2e-tests/gatsby-pnp
       - run:
           command: yarn build
@@ -367,91 +587,232 @@ jobs:
           command: 'DEBUG=start-server-and-test yarn start-server-and-test "yarn develop 2>&1 | tee log.txt" :8000 "! cat log.txt | grep -E ''ERROR #|Require stack:''"'
           working_directory: /tmp/e2e-tests/gatsby-pnp
 
-  e2e_tests_development_runtime:
-    <<: *e2e_tests_development_runtime_alias
+  e2e_tests_pnpm:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - checkout
+      - run: ./scripts/assert-changed-files.sh "packages/*|.circleci/*"
+      - <<: *attach_to_bootstrap
+      - run:
+          command: mkdir -p /tmp/e2e-tests/
+          working_directory: ~/project
+      - run:
+          command: cp -r ./starters/default /tmp/e2e-tests/gatsby-pnpm
+          working_directory: ~/project
+      - run: # default doesn't have API functions so let's get some of those
+          command: cp -r ./e2e-tests/adapters/src/api /tmp/e2e-tests/gatsby-pnpm/src/api
+          working_directory: ~/project
+      - run:
+          command: rm package-lock.json
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
+      - run: # Install pnpm
+          command: npm install -g pnpm@9
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
+      - run: # Install start-server-and-test
+          command: npm install -g start-server-and-test@^1.11.0
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
+      - run: # Set project dir
+          command: node ~/project/packages/gatsby-dev-cli/dist/index.js --set-path-to-repo ~/project
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
+      - run: # Copy over packages
+          command: node ~/project/packages/gatsby-dev-cli/dist/index.js --force-install --scan-once --package-manager pnpm
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
+      - run:
+          command: pnpm build
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
+      - run:
+          command: 'DEBUG=start-server-and-test pnpm start-server-and-test "pnpm develop 2>&1 | tee log.txt" :8000 "! cat log.txt | grep -E ''ERROR #|Require stack:''"'
+          working_directory: /tmp/e2e-tests/gatsby-pnpm
 
-  e2e_tests_development_runtime_with_experimental_react:
-    <<: *e2e_tests_development_runtime_alias
+  e2e_tests_development_runtime_with_react_18:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      # We use curl in this test suite but it isn't available in all images we use
+      - fix_chrome_signing_key
+      - run: apt-get update && apt-get install -y curl
+      - e2e-test:
+          test_path: e2e-tests/development-runtime
 
-  e2e_tests_development_runtime_with_next_react:
-    <<: *e2e_tests_development_runtime_alias
+  e2e_tests_development_runtime_with_react_19:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      # We use curl in this test suite but it isn't available in all images we use
+      - fix_chrome_signing_key
+      - run: apt-get update && apt-get install -y curl
+      - e2e-test:
+          test_path: e2e-tests/development-runtime
+          react_version: "19.1.1"
 
-  e2e_tests_production_runtime:
-    <<: *e2e_tests_production_runtime_alias
+  e2e_tests_production_runtime_with_react_18:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - e2e-test:
+          test_path: e2e-tests/production-runtime
+          test_command: yarn test && yarn test:offline
 
-  e2e_tests_production_runtime_with_experimental_react:
-    <<: *e2e_tests_production_runtime_alias
+  e2e_tests_production_runtime_with_react_19:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - e2e-test:
+          test_path: e2e-tests/production-runtime
+          test_command: yarn test && yarn test:offline
+          react_version: "19.1.1"
 
-  e2e_tests_production_runtime_with_next_react:
-    <<: *e2e_tests_production_runtime_alias
+  e2e_tests_react_19:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - e2e-test:
+          test_path: e2e-tests/react-19
 
   themes_e2e_tests_development_runtime:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: 9parq5
-      CYPRESS_RECORD_KEY: 3fb49000-4143-4bd8-9ab4-219389060910
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - e2e-test:
           test_path: e2e-tests/themes
-          test_command: cd development-runtime; yarn test
+          test_command: cd development-runtime; gatsby-dev --force-install --scan-once; yarn test
 
   themes_e2e_tests_production_runtime:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: c9rs27
-      CYPRESS_RECORD_KEY: e4e7b3b8-e1e7-4a74-a0c9-9ac76585236b
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - e2e-test:
           test_path: e2e-tests/themes
-          test_command: cd production-runtime; yarn test
+          test_command: cd production-runtime; gatsby-dev --force-install --scan-once; yarn test
 
-  mdx_e2e_tests:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: spbj28
-      CYPRESS_RECORD_KEY: af30ea46-121f-4fb7-97dd-f17ec224402e
+  e2e_tests_mdx:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - e2e-test:
           test_path: e2e-tests/mdx
-          test_command: yarn test
-
-  e2e_tests_gatsby-static-image:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: zstawi
-      CYPRESS_RECORD_KEY: 389326a6-c0d2-4215-bc5e-3be29483ed13
-    steps:
-      - e2e-test:
-          test_path: e2e-tests/gatsby-static-image
-          test_command: yarn test
 
   e2e_tests_visual-regression:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: nz99aw
-      CYPRESS_RECORD_KEY: ed4b1af1-bd97-47d4-bb09-3cab2435a147
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - e2e-test:
           test_path: e2e-tests/visual-regression
-          test_command: yarn test
       - store_artifacts:
           path: e2e-tests/visual-regression/__diff_output__
       - store_test_results:
           path: e2e-tests/visual-regression/cypress/results
 
   e2e_tests_contentful:
-    <<: *e2e-executor
-    environment:
-      CYPRESS_PROJECT_ID: 2193cm
-      CYPRESS_RECORD_KEY: 57e9563e-af49-494c-837c-5af53c2d6f76
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
     steps:
       - e2e-test:
           test_path: e2e-tests/contentful
-          test_command: yarn test
+      # we build a second time to see if warm/cached builds are successful
+      - e2e-test:
+          test_path: e2e-tests/contentful
+          test_command: yarn build
       - store_artifacts:
           path: e2e-tests/contentful/__diff_output__
       - store_test_results:
           path: e2e-tests/contentful/cypress/results
+
+  e2e_tests_trailing-slash:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - e2e-test:
+          test_path: e2e-tests/trailing-slash
+      - store_test_results:
+          path: e2e-tests/trailing-slash/cypress/results
+
+  e2e_tests_adapters:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - check_netlify_credentials
+      - e2e-test:
+          test_path: e2e-tests/adapters
+      - store_test_results:
+          path: e2e-tests/adapters/cypress/results
+
+  e2e_tests_adapters_monorepo:
+    parameters:
+      node_version:
+        type: string
+      e2e_executor_suffix:
+        type: string
+    executor: e2e<< parameters.e2e_executor_suffix >>
+    steps:
+      - check_netlify_credentials
+      # used in e2e-tests/adapters/make-monorepo.sh
+      - fix_chrome_signing_key
+      - run: apt-get update && apt-get install -y jq
+      - e2e-test:
+          test_path: e2e-tests/adapters
+          # node_modules/yarn.lock at this point are from the plain, pre-substitution
+          # install e2e-test.sh already ran against the workspace root (which has no
+          # dependencies of its own, so nothing local got linked). Clear them so the
+          # gatsby-dev call below - the one that actually links local packages - runs
+          # against a clean tree instead of layering an incremental install on top of it.
+          test_command: rm -rf node_modules yarn.lock; cd workspace; gatsby-dev --force-install --scan-once; cd ..; yarn test
+          pre_gatsby_dev_command: ./make-monorepo.sh
+      - store_test_results:
+          path: e2e-tests/adapters/cypress/results
 
   starters_validate:
     executor: node
@@ -465,8 +826,9 @@ jobs:
     steps:
       - checkout
       # jq is helpful for parsing json & python required for node-gyp to build lmdb
-      - run: sudo apt-get update && sudo apt-get install jq python -y
-      - <<: *restore_cache
+      - run: sudo apt-get update && sudo apt-get install -y jq python3 python-is-python3
+      - restore_yarn_cache:
+          node_version: 18.0.0
       - <<: *install_node_modules
       - run: yarn markdown
       - run: git config --global user.name "GatsbyJS Bot"
@@ -477,14 +839,16 @@ jobs:
     executor: node
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get install jq python -y
-      - <<: *restore_cache
+      # python is not built in and node-gyp needs it to build lmdb
+      - run: sudo apt-get update && sudo apt-get install -y jq python3 python-is-python3
+      - restore_yarn_cache:
+          node_version: 18.0.0
       - <<: *install_node_modules
       - run: git config --global user.name "GatsbyJS Bot"
       - run: git config --global user.email "core-team@gatsbyjs.com"
       - run: node scripts/gatsby-changelog-generator/update-and-open-pr.js
-      - run: yarn format:other
 
+  # TODO(serhalp): Test Windows on Node.js 20 and 24?
   windows_unit_tests:
     parallelism: 4
     executor:
@@ -498,17 +862,17 @@ jobs:
       # Restoring cache takes as long as installing node modules, so skipping
       # - restore_cache:
       #     keys:
-      #       - yarn-packages-v2-{{ checksum "yarn.lock" }}
-      #       - yarn-packages-v2-
+      #       - yarn-packages-v2-{{ checksum "yarn.lock" }}-<< parameters.node_version >>
+      #       - yarn-packages-v2-<< parameters.node_version >>
 
       - <<: *attach_to_bootstrap
       - run:
-          name: Install node 14.15.0 and yarn
+          name: Install node 18.0.0 and yarn
           command: |
-            nvm install 14.15.0
-            nvm alias default 14.15.0
-            nvm use 14.15.0
-            choco install yarn
+            nvm install 18.0.0
+            nvm alias default 18.0.0
+            nvm use 18.0.0
+            choco install yarn -y
       - run:
           name: Rebuild packages for windows
           command: |
@@ -516,77 +880,61 @@ jobs:
             yarn
       - run:
           name: Run tests
-          command: yarn jest --ci --runInBand ((yarn jest --listTests) | Foreach-Object {$_ -replace '.*\\packages', 'packages'} | Foreach-Object {$_ -replace '\\', '/'} | circleci tests split --split-by=timings)
+          command: yarn jest --ci --runInBand ((yarn jest --listTests) | Foreach-Object {$_ -replace '.*\\packages', 'packages'} | Foreach-Object {$_ -replace '\\', '/'} | circleci tests split)
+          no_output_timeout: 15m
           environment:
             NODE_OPTIONS: --max-old-space-size=2048
+            NODE_NO_WARNINGS: 1
+            BROWSERSLIST_IGNORE_OLD_DATA: true
             GENERATE_JEST_REPORT: "true"
+            COMPILER_OPTIONS: GATSBY_MAJOR=5
             JEST_JUNIT_OUTPUT_DIR: ./test-results/jest-node/
             JEST_JUNIT_OUTPUT_NAME: results.xml
+            JEST_JUNIT_REPORT_TEST_SUITE_ERRORS: "true"
       - store_test_results:
           path: ./test-results/jest-node/
 
-  bootstrap-with-experimental-react:
-    executor: node
-    parameters:
-      version:
-        type: string
-        default: "next"
+  windows_adapters_smoke:
+    executor:
+      name: win/default
+      shell: bash.exe
     steps:
+      - check_netlify_credentials
       - checkout
-      # python 2 is not built in and node-gyp needs it to build lmdb
-      - run: sudo apt-get update && sudo apt-get install python -y
       - run:
-          name: "Update React to prerelease"
-          command: "REACT_CHANNEL=<< parameters.version >> node ./scripts/upgrade-react"
-      - run: yarn install
-      - run: yarn bootstrap -- concurrency=2
-      - run: yarn list react
-      - persist_to_workspace:
-          root: ./
-          paths:
-            - "*"
+          command: ./scripts/assert-changed-files.sh "packages/*|(e2e|integration)-tests/*|.circleci/*|scripts/e2e-test.sh|yarn.lock"
+      - <<: *attach_to_bootstrap
+      - run:
+          # netlify-cli requires node>=22.13.0
+          name: Install node 22.21.0, yarn and netlify-cli
+          command: |
+            nvm install 22.21.0
+            nvm alias default 22.21.0
+            nvm use 22.21.0
+            npm install -g yarn netlify-cli
+      - run:
+          name: Clear out sharp
+          command: |
+            Remove-Item -Recurse -Force -Path "node_modules/sharp/"
+          shell: powershell.exe
+      - run:
+          command: yarn
+      - run:
+          command: mkdir -p /tmp/e2e-tests/
+      - run:
+          command: cp -r ./e2e-tests/adapters /tmp/e2e-tests/adapters
+      - run:
+          command: pwd && ls
+          working_directory: /tmp/e2e-tests/adapters
+      - run: # Set project dir
+          command: node ./packages/gatsby-dev-cli/dist/index.js --set-path-to-repo .
+      - run: # Copy over packages
+          command: cd /tmp/e2e-tests/adapters && node ~/project/packages/gatsby-dev-cli/dist/index.js --force-install --scan-once
+      - run: # run smoke test
+          command: cd /tmp/e2e-tests/adapters && node scripts/deploy-and-run/netlify.mjs test:smoke
 
 workflows:
   version: 2
-
-  nightly-react-next:
-    triggers:
-      - schedule:
-          cron: "0 0 * * 1,2,3,4,5"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - bootstrap-with-experimental-react:
-          version: "next"
-      - e2e_tests_development_runtime_with_next_react:
-          nightly: true
-          requires:
-            - bootstrap-with-experimental-react
-      - e2e_tests_production_runtime_with_next_react:
-          nightly: true
-          requires:
-            - bootstrap-with-experimental-react
-  nightly-react-experimental:
-    triggers:
-      - schedule:
-          cron: "0 0 * * 1,2,3,4,5"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - bootstrap-with-experimental-react:
-          version: "experimental"
-      - e2e_tests_development_runtime_with_experimental_react:
-          nightly: true
-          requires:
-            - bootstrap-with-experimental-react
-      - e2e_tests_production_runtime_with_experimental_react:
-          nightly: true
-          requires:
-            - bootstrap-with-experimental-react
 
   # Ideally, we should trigger this when any new release is created, sadly there is no easy way to do it:
   # - Can't rely on tags: GitHub won't send webhook to CircleCI when there are more than 3 tags in one push
@@ -606,64 +954,91 @@ workflows:
 
   build-test:
     jobs:
-      - bootstrap
+      - bootstrap:
+          name: "bootstrap-<< matrix.node_version >>"
+          matrix:
+            parameters:
+              node_version: ["18.2.0", "20.19", "22.21.0", "24.11.1"]
       - lint
       - typecheck:
           requires:
-            - bootstrap
+            - bootstrap-18.2.0
       - windows_unit_tests:
           <<: *ignore_docs
           requires:
-            - lint
-            - bootstrap
-      - unit_tests_node14:
+            - bootstrap-18.2.0
+      - windows_adapters_smoke:
+          requires:
+            - bootstrap-22.21.0
+      - unit_tests_node18:
           <<: *ignore_docs
           requires:
-            - lint
-            - typecheck
-            - bootstrap
-      - integration_tests_gatsby_source_wordpress:
-          <<: *e2e-test-workflow
-      - integration_tests_node_manifest:
-          <<: *e2e-test-workflow
-      - integration_tests_long_term_caching:
-          <<: *e2e-test-workflow
-      - integration_tests_cache_resilience:
-          <<: *e2e-test-workflow
-      - integration_tests_gatsby_pipeline:
-          <<: *e2e-test-workflow
-      - integration_tests_structured_logging:
-          <<: *e2e-test-workflow
-      - integration_tests_artifacts:
-          <<: *e2e-test-workflow
-      - integration_tests_ssr:
-          <<: *e2e-test-workflow
-      - integration_tests_images:
-          <<: *e2e-test-workflow
-      - integration_tests_functions:
-          <<: *e2e-test-workflow
-      - integration_tests_gatsby_cli:
+            - bootstrap-18.2.0
+      - unit_tests_node20:
+          <<: *ignore_docs
           requires:
-            - bootstrap
+            - bootstrap-20.19
+      - unit_tests_node24:
+          <<: *ignore_docs
+          requires:
+            - bootstrap-24.11.1
+      - integration_tests_gatsby_source_wordpress:
+          <<: *integration-test-workflow
+      - integration_tests_long_term_caching:
+          <<: *integration-test-workflow
+      - integration_tests_cache_resilience:
+          <<: *integration-test-workflow
+      - integration_tests_gatsby_pipeline:
+          <<: *integration-test-workflow
+      - integration_tests_structured_logging:
+          <<: *integration-test-workflow
+      - integration_tests_artifacts:
+          <<: *integration-test-workflow
+      - integration_tests_ssr:
+          <<: *integration-test-workflow
+      - integration_tests_images:
+          <<: *integration-test-workflow
+      - integration_tests_functions:
+          <<: *integration-test-workflow
+      - integration_tests_head_function_export:
+          <<: *integration-test-workflow
+      - integration_tests_esm_in_gatsby_files:
+          <<: *integration-test-workflow
+      - integration_tests_lmdb_regeneration:
+          <<: *integration-test-workflow
+      - integration_tests_gatsby_cli:
+          <<: *integration-test-workflow
       - e2e_tests_pnp:
           <<: *e2e-test-workflow
-      - e2e_tests_path-prefix:
+      - e2e_tests_pnpm:
           <<: *e2e-test-workflow
-      - e2e_tests_gatsby-static-image:
+      - e2e_tests_path-prefix:
           <<: *e2e-test-workflow
       - e2e_tests_visual-regression:
           <<: *e2e-test-workflow
       - e2e_tests_contentful:
           <<: *e2e-test-workflow
-      - e2e_tests_development_runtime:
+      - e2e_tests_mdx:
           <<: *e2e-test-workflow
-      - e2e_tests_production_runtime:
+      - e2e_tests_trailing-slash:
+          <<: *e2e-test-workflow
+      - e2e_tests_adapters:
+          <<: *adapters-e2e-test-workflow
+      - e2e_tests_adapters_monorepo:
+          <<: *adapters-e2e-test-workflow
+      - e2e_tests_development_runtime_with_react_18:
+          <<: *e2e-test-workflow
+      - e2e_tests_production_runtime_with_react_18:
+          <<: *e2e-test-workflow
+      - e2e_tests_development_runtime_with_react_19:
+          <<: *e2e-test-workflow
+      - e2e_tests_production_runtime_with_react_19:
+          <<: *e2e-test-workflow
+      - e2e_tests_react_19:
           <<: *e2e-test-workflow
       - themes_e2e_tests_production_runtime:
           <<: *e2e-test-workflow
       - themes_e2e_tests_development_runtime:
-          <<: *e2e-test-workflow
-      - mdx_e2e_tests:
           <<: *e2e-test-workflow
       - starters_validate:
           <<: *ignore_master

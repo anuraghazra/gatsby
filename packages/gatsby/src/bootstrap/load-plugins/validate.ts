@@ -7,10 +7,9 @@ import reporter from "gatsby-cli/lib/reporter"
 import { validateOptionsSchema, Joi } from "gatsby-plugin-utils"
 import { IPluginRefObject } from "gatsby-plugin-utils/dist/types"
 import { stripIndent } from "common-tags"
-import { trackCli } from "gatsby-telemetry"
 import { isWorker } from "gatsby-worker"
 import { resolveModuleExports } from "../resolve-module-exports"
-import { getLatestAPIs } from "../../utils/get-latest-apis"
+import { getLatestAPIs } from "../../utils/get-latest-gatsby-files"
 import { GatsbyNode, PackageJson } from "../../../"
 import {
   IPluginInfo,
@@ -18,7 +17,10 @@ import {
   IPluginInfoOptions,
   ISiteConfig,
 } from "./types"
-import { resolvePlugin } from "./load"
+import { resolvePlugin } from "./resolve-plugin"
+import { preferDefault } from "../prefer-default"
+import { importGatsbyPlugin } from "../../utils/import-gatsby-plugin"
+import { maybeAddFileProtocol } from "../resolve-js-file-path"
 
 interface IApi {
   version?: string
@@ -178,9 +180,29 @@ export async function handleBadExports({
   }
 }
 
+const addModuleImportAndValidateOptions =
+  (rootDir: string, incErrors: (inc: number) => void) =>
+  async (value: Array<IPluginRefObject>): Promise<Array<IPluginRefObject>> => {
+    for (const plugin of value) {
+      if (plugin.modulePath) {
+        const importedModule = await import(
+          maybeAddFileProtocol(plugin.modulePath)
+        )
+        const pluginModule = preferDefault(importedModule)
+        plugin.module = pluginModule
+      }
+    }
+
+    const { errors: subErrors, plugins: subPlugins } =
+      await validatePluginsOptions(value as Array<IPluginRefObject>, rootDir)
+
+    incErrors(subErrors)
+    return subPlugins
+  }
+
 async function validatePluginsOptions(
   plugins: Array<IPluginRefObject>,
-  rootDir: string | null
+  rootDir: string
 ): Promise<{
   errors: number
   plugins: Array<IPluginRefObject>
@@ -191,7 +213,7 @@ async function validatePluginsOptions(
       let gatsbyNode
       try {
         const resolvedPlugin = resolvePlugin(plugin, rootDir)
-        gatsbyNode = require(`${resolvedPlugin.resolve}/gatsby-node`)
+        gatsbyNode = await importGatsbyPlugin(resolvedPlugin, `gatsby-node`)
       } catch (err) {
         gatsbyNode = {}
       }
@@ -233,7 +255,6 @@ async function validatePluginsOptions(
                       `${resolvedPlugin.resolve}${entry ? `/${entry}` : ``}`
                     )
                     value.modulePath = modulePath
-                    value.module = require(modulePath)
 
                     const normalizedPath = helpers.state.path
                       .map((key, index) => {
@@ -266,7 +287,16 @@ async function validatePluginsOptions(
                   return value
                 })
               }, `Gatsby specific subplugin validation`)
-              .default([]),
+              .default([])
+              .external(
+                addModuleImportAndValidateOptions(
+                  rootDir,
+                  (inc: number): void => {
+                    errors += inc
+                  }
+                ),
+                `add module key to subplugin`
+              ),
             args: (schema: any, args: any): any => {
               if (
                 args?.entry &&
@@ -281,6 +311,14 @@ async function validatePluginsOptions(
           }
         }),
       })
+
+      // If rootDir and plugin.parentDir are the same, i.e. if this is a plugin a user configured in their gatsby-config.js (and not a sub-theme that added it), this will be ""
+      // Otherwise, this will contain (and show) the relative path
+      const configDir =
+        (plugin.parentDir &&
+          rootDir &&
+          path.relative(rootDir, plugin.parentDir)) ||
+        null
 
       if (!Joi.isSchema(optionsSchema) || optionsSchema.type !== `object`) {
         // Validate correct usage of pluginOptionsSchema
@@ -300,12 +338,34 @@ async function validatePluginsOptions(
           })
         }
 
-        plugin.options = await validateOptionsSchema(
+        const { value, warning } = await validateOptionsSchema(
           optionsSchema,
           (plugin.options as IPluginInfoOptions) || {}
         )
 
-        if (plugin.options?.plugins) {
+        plugin.options = value
+
+        // Handle unknown key warnings
+        const validationWarnings = warning?.details
+
+        if (validationWarnings?.length > 0) {
+          reporter.warn(
+            stripIndent(`
+        Warning: there are unknown plugin options for "${plugin.resolve}"${
+              configDir ? `, configured by ${configDir}` : ``
+            }: ${validationWarnings
+              .map(error => error.path.join(`.`))
+              .join(`, `)}
+        Please open an issue at https://ghub.io/${
+          plugin.resolve
+        } if you believe this option is valid.
+      `)
+          )
+          // We do not increment errors++ here as we do not want to process.exit if there are only warnings
+        }
+
+        // Validate subplugins if they weren't handled already
+        if (!subPluginPaths.has(`plugins`) && plugin.options?.plugins) {
           const { errors: subErrors, plugins: subPlugins } =
             await validatePluginsOptions(
               plugin.options.plugins as Array<IPluginRefObject>,
@@ -322,21 +382,7 @@ async function validatePluginsOptions(
         }
       } catch (error) {
         if (error instanceof Joi.ValidationError) {
-          // Show a small warning on unknown options rather than erroring
-          const validationWarnings = error.details.filter(
-            err => err.type === `object.unknown`
-          )
-          const validationErrors = error.details.filter(
-            err => err.type !== `object.unknown`
-          )
-
-          // If rootDir and plugin.parentDir are the same, i.e. if this is a plugin a user configured in their gatsby-config.js (and not a sub-theme that added it), this will be ""
-          // Otherwise, this will contain (and show) the relative path
-          const configDir =
-            (plugin.parentDir &&
-              rootDir &&
-              path.relative(rootDir, plugin.parentDir)) ||
-            null
+          const validationErrors = error.details
           if (validationErrors.length > 0) {
             reporter.error({
               id: `11331`,
@@ -348,31 +394,6 @@ async function validatePluginsOptions(
             })
             errors++
           }
-
-          if (validationWarnings.length > 0) {
-            reporter.warn(
-              stripIndent(`
-                Warning: there are unknown plugin options for "${
-                  plugin.resolve
-                }"${
-                configDir ? `, configured by ${configDir}` : ``
-              }: ${validationWarnings
-                .map(error => error.path.join(`.`))
-                .join(`, `)}
-                Please open an issue at ghub.io/${
-                  plugin.resolve
-                } if you believe this option is valid.
-              `)
-            )
-            trackCli(`UNKNOWN_PLUGIN_OPTION`, {
-              name: plugin.resolve,
-              valueString: validationWarnings
-                .map(error => error.path.join(`.`))
-                .join(`, `),
-            })
-            // We do not increment errors++ here as we do not want to process.exit if there are only warnings
-          }
-
           return plugin
         }
 
@@ -387,7 +408,7 @@ async function validatePluginsOptions(
 
 export async function validateConfigPluginsOptions(
   config: ISiteConfig = {},
-  rootDir: string | null
+  rootDir: string
 ): Promise<void> {
   if (!config.plugins) return
 
@@ -406,13 +427,18 @@ export async function validateConfigPluginsOptions(
 /**
  * Identify which APIs each plugin exports
  */
-export function collatePluginAPIs({
+export async function collatePluginAPIs({
   currentAPIs,
   flattenedPlugins,
+  rootDir,
 }: {
   currentAPIs: ICurrentAPIs
   flattenedPlugins: Array<IPluginInfo & Partial<IFlattenedPlugin>>
-}): { flattenedPlugins: Array<IFlattenedPlugin>; badExports: IEntryMap } {
+  rootDir: string
+}): Promise<{
+  flattenedPlugins: Array<IFlattenedPlugin>
+  badExports: IEntryMap
+}> {
   // Get a list of bad exports
   const badExports: IEntryMap = {
     node: [],
@@ -420,7 +446,7 @@ export function collatePluginAPIs({
     ssr: [],
   }
 
-  flattenedPlugins.forEach(plugin => {
+  for (const plugin of flattenedPlugins) {
     plugin.nodeAPIs = []
     plugin.browserAPIs = []
     plugin.ssrAPIs = []
@@ -428,17 +454,22 @@ export function collatePluginAPIs({
     // Discover which APIs this plugin implements and store an array against
     // the plugin node itself *and* in an API to plugins map for faster lookups
     // later.
-    const pluginNodeExports = resolveModuleExports(
-      `${plugin.resolve}/gatsby-node`,
+    const pluginNodeExports = await resolveModuleExports(
+      plugin.resolvedCompiledGatsbyNode ?? `${plugin.resolve}/gatsby-node`,
       {
-        mode: `require`,
+        mode: `import`,
+        rootDir,
       }
     )
-    const pluginBrowserExports = resolveModuleExports(
-      `${plugin.resolve}/gatsby-browser`
+    const pluginBrowserExports = await resolveModuleExports(
+      `${plugin.resolve}/gatsby-browser`,
+      {
+        rootDir,
+      }
     )
-    const pluginSSRExports = resolveModuleExports(
-      `${plugin.resolve}/gatsby-ssr`
+    const pluginSSRExports = await resolveModuleExports(
+      `${plugin.resolve}/gatsby-ssr`,
+      { rootDir }
     )
 
     if (pluginNodeExports.length > 0) {
@@ -464,7 +495,7 @@ export function collatePluginAPIs({
         getBadExports(plugin, pluginSSRExports, currentAPIs.ssr)
       ) // Collate any bad exports
     }
-  })
+  }
 
   return {
     flattenedPlugins: flattenedPlugins as Array<IFlattenedPlugin>,
@@ -486,7 +517,7 @@ export const handleMultipleReplaceRenderers = ({
       reporter.warn(`replaceRenderer API found in these plugins:`)
       reporter.warn(rendererPlugins.join(`, `))
       reporter.warn(
-        `This might be an error, see: https://www.gatsbyjs.org/docs/debugging-replace-renderer-api/`
+        `This might be an error, see: https://www.gatsbyjs.com/docs/debugging-replace-renderer-api/`
       )
     } else {
       console.log(``)
@@ -496,7 +527,7 @@ export const handleMultipleReplaceRenderers = ({
       reporter.error(rendererPlugins.join(`, `))
       reporter.error(`This will break your build`)
       reporter.error(
-        `See: https://www.gatsbyjs.org/docs/debugging-replace-renderer-api/`
+        `See: https://www.gatsbyjs.com/docs/debugging-replace-renderer-api/`
       )
       if (process.env.NODE_ENV === `production`) process.exit(1)
     }

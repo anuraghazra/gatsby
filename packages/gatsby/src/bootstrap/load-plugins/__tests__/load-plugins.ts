@@ -2,7 +2,8 @@ import { loadPlugins } from "../index"
 import { slash } from "gatsby-core-utils"
 import reporter from "gatsby-cli/lib/reporter"
 import { IFlattenedPlugin } from "../types"
-import { silent as resolveFrom } from "resolve-from"
+
+const mockNonIncompatibleWarn = jest.fn()
 
 jest.mock(`gatsby-cli/lib/reporter`, () => {
   return {
@@ -10,9 +11,32 @@ jest.mock(`gatsby-cli/lib/reporter`, () => {
     panic: jest.fn(),
     panicOnBuild: jest.fn(),
     log: jest.fn(),
-    warn: jest.fn(),
+    warn: jest.fn((...args) => {
+      // filter out compatible warnings as we get a lot of
+      // Plugin X is not compatible with your gatsby version X - It requires X
+      // right now
+      if (!args[0].includes(`is not compatible with your gatsby version`)) {
+        mockNonIncompatibleWarn(...args)
+      }
+    }),
     success: jest.fn(),
     info: jest.fn(),
+  }
+})
+
+// Previously babel transpiled src ts plugin files (e.g. gatsby-node files) on the fly,
+// making them require-able/test-able without running compileGatsbyFiles prior (as would happen in a real scenario).
+// After switching to import to support esm, point file path resolution to the real compiled JS files in dist instead.
+jest.mock(`../../resolve-js-file-path`, () => {
+  return {
+    resolveJSFilepath: jest.fn(({ filePath }: { filePath: string }) => {
+      if (filePath.includes(`load-plugins/__tests__/fixtures`)) {
+        return filePath
+      }
+
+      return `${filePath.replace(`src`, `dist`)}.js`
+    }),
+    maybeAddFileProtocol: jest.fn(val => val),
   }
 })
 
@@ -23,7 +47,6 @@ afterEach(() => {
   Object.keys(reporter).forEach(method => {
     reporter[method].mockClear()
   })
-  resolveFrom.mockClear()
   mockProcessExit.mockClear()
 })
 
@@ -197,133 +220,7 @@ describe(`Load plugins`, () => {
         (plugin: { name: string }) => plugin.name === `gatsby-plugin-typescript`
       )
 
-      // TODO: I think we should probably be de-duping, so this should be 1.
-      // But this test is mostly here to ensure we don't add an _additional_ gatsby-plugin-typescript
-      expect(tsplugins.length).toEqual(2)
-    })
-  })
-
-  describe(`gatsby-plugin-gatsby-cloud support`, () => {
-    it(`doesn't load gatsby-plugin-gatsby-cloud if not installed`, async () => {
-      resolveFrom.mockImplementation(() => undefined)
-      const config = {
-        plugins: [],
-      }
-
-      let plugins = await loadPlugins(config, process.cwd())
-
-      plugins = replaceFieldsThatCanVary(plugins)
-
-      expect(plugins).toEqual(
-        expect.arrayContaining([
-          expect.not.objectContaining({
-            name: `gatsby-plugin-gatsby-cloud`,
-          }),
-        ])
-      )
-    })
-
-    it(`doesn't load gatsby-plugin-gatsby-cloud if not provided and installed`, async () => {
-      resolveFrom.mockImplementation(
-        (rootDir, pkg) => rootDir + `/node_modules/` + pkg
-      )
-      const config = {
-        plugins: [],
-      }
-
-      let plugins = await loadPlugins(config, process.cwd())
-
-      plugins = replaceFieldsThatCanVary(plugins)
-
-      expect(plugins).toEqual(
-        expect.arrayContaining([
-          expect.not.objectContaining({
-            name: `gatsby-plugin-gatsby-cloud`,
-          }),
-        ])
-      )
-    })
-
-    it(`loads gatsby-plugin-gatsby-cloud if not provided and installed on gatsby-cloud`, async () => {
-      resolveFrom.mockImplementation(
-        (rootDir, pkg) => rootDir + `/node_modules/` + pkg
-      )
-      const config = {
-        plugins: [],
-      }
-
-      process.env.GATSBY_CLOUD = `true`
-      let plugins = await loadPlugins(config, process.cwd())
-      delete process.env.GATSBY_CLOUD
-
-      plugins = replaceFieldsThatCanVary(plugins)
-
-      expect(plugins).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: `gatsby-plugin-gatsby-cloud`,
-          }),
-        ])
-      )
-    })
-
-    it(`uses the user provided plugin-gatsby-cloud if provided`, async () => {
-      resolveFrom.mockImplementation(
-        (rootDir, pkg) => rootDir + `/node_modules/` + pkg
-      )
-      const config = {
-        plugins: [
-          {
-            resolve: `gatsby-plugin-gatsby-cloud`,
-            options: {
-              generateMatchPathRewrites: false,
-            },
-          },
-        ],
-      }
-
-      process.env.GATSBY_CLOUD = `true`
-      let plugins = await loadPlugins(config, process.cwd())
-      delete process.env.GATSBY_CLOUD
-
-      plugins = replaceFieldsThatCanVary(plugins)
-
-      expect(plugins).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: `gatsby-plugin-gatsby-cloud`,
-            pluginOptions: {
-              generateMatchPathRewrites: false,
-              plugins: [],
-            },
-          }),
-        ])
-      )
-    })
-
-    it(`does not add gatsby-plugin-gatsby-cloud if it exists in config.plugins`, async () => {
-      resolveFrom.mockImplementation(
-        (rootDir, pkg) => rootDir + `/node_modules/` + pkg
-      )
-      const config = {
-        plugins: [
-          `gatsby-plugin-gatsby-cloud`,
-          { resolve: `gatsby-plugin-gatsby-cloud` },
-        ],
-      }
-
-      let plugins = await loadPlugins(config, process.cwd())
-
-      plugins = replaceFieldsThatCanVary(plugins)
-
-      const cloudPlugins = plugins.filter(
-        (plugin: { name: string }) =>
-          plugin.name === `gatsby-plugin-gatsby-cloud`
-      )
-
-      // TODO: I think we should probably be de-duping, so this should be 1.
-      // But this test is mostly here to ensure we don't add an _additional_ gatsby-plugin-typescript
-      expect(cloudPlugins.length).toEqual(2)
+      expect(tsplugins.length).toEqual(1)
     })
   })
 
@@ -450,11 +347,12 @@ describe(`Load plugins`, () => {
       )
 
       expect(reporter.error as jest.Mock).toHaveBeenCalledTimes(0)
-      expect(reporter.warn as jest.Mock).toHaveBeenCalledTimes(1)
-      expect((reporter.warn as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`
+      expect(mockNonIncompatibleWarn as jest.Mock).toHaveBeenCalledTimes(1)
+      expect((mockNonIncompatibleWarn as jest.Mock).mock.calls[0])
+        .toMatchInlineSnapshot(`
         Array [
           "Warning: there are unknown plugin options for \\"gatsby-plugin-google-analytics\\": doesThisExistInTheSchema
-        Please open an issue at ghub.io/gatsby-plugin-google-analytics if you believe this option is valid.",
+        Please open an issue at https://ghub.io/gatsby-plugin-google-analytics if you believe this option is valid.",
         ]
       `)
       expect(mockProcessExit).not.toHaveBeenCalled()
@@ -501,6 +399,58 @@ describe(`Load plugins`, () => {
               resolve: `gatsby-transformer-remark`,
               options: {
                 plugins: [
+                  {
+                    resolve: `gatsby-remark-autolink-headers`,
+                    options: {
+                      maintainCase: `should be boolean`,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        process.cwd()
+      )
+
+      expect(reporter.error as jest.Mock).toHaveBeenCalledTimes(1)
+      expect((reporter.error as jest.Mock).mock.calls[0])
+        .toMatchInlineSnapshot(`
+        Array [
+          Object {
+            "context": Object {
+              "configDir": null,
+              "pluginName": "gatsby-remark-autolink-headers",
+              "validationErrors": Array [
+                Object {
+                  "context": Object {
+                    "key": "maintainCase",
+                    "label": "maintainCase",
+                    "value": "should be boolean",
+                  },
+                  "message": "\\"maintainCase\\" must be a boolean",
+                  "path": Array [
+                    "maintainCase",
+                  ],
+                  "type": "boolean.base",
+                },
+              ],
+            },
+            "id": "11331",
+          },
+        ]
+      `)
+      expect(mockProcessExit).toHaveBeenCalledWith(1)
+    })
+
+    it(`validates subplugin schemas (if not in options.plugins)`, async () => {
+      await loadPlugins(
+        {
+          plugins: [
+            {
+              resolve: `gatsby-plugin-mdx`,
+              options: {
+                gatsbyRemarkPlugins: [
                   {
                     resolve: `gatsby-remark-autolink-headers`,
                     options: {

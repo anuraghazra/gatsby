@@ -1,13 +1,14 @@
-import store from "~/store"
+import { getStore } from "~/store"
 import fetchGraphql from "~/utils/fetch-graphql"
 import { formatLogMessage } from "~/utils/format-log-message"
 import { createNodeWithSideEffects } from "./create-nodes"
 import fetchReferencedMediaItemsAndCreateNodes from "../fetch-nodes/fetch-referenced-media-items"
 import { CREATED_NODE_IDS } from "~/constants"
 import { getPersistentCache, setPersistentCache } from "~/utils/cache"
+import { needToTouchNodes } from "../../../utils/gatsby-features"
 
 const fetchAndCreateNonNodeRootFields = async () => {
-  const state = store.getState()
+  const state = getStore().getState()
 
   const {
     remoteSchema: { nonNodeQuery },
@@ -59,7 +60,7 @@ const fetchAndCreateNonNodeRootFields = async () => {
    * upfront here
    */
   if (!pluginOptions.type.MediaItem.lazyNodes && newMediaItemIds.length) {
-    store.dispatch.logger.createActivityTimer({
+    getStore().dispatch.logger.createActivityTimer({
       typeName: `MediaItems`,
       pluginOptions,
       reporter,
@@ -69,22 +70,24 @@ const fetchAndCreateNonNodeRootFields = async () => {
       referencedMediaItemNodeIds: newMediaItemIds,
     })
 
-    const previouslyCachedNodeIds = await getPersistentCache({
-      key: CREATED_NODE_IDS,
-    })
+    if (needToTouchNodes) {
+      const previouslyCachedNodeIds = await getPersistentCache({
+        key: CREATED_NODE_IDS,
+      })
 
-    const createdNodeIds = [
-      ...new Set([
-        ...(previouslyCachedNodeIds || []),
-        ...referencedMediaItemNodeIdsArray,
-      ]),
-    ]
+      const createdNodeIds = [
+        ...new Set([
+          ...(previouslyCachedNodeIds || []),
+          ...referencedMediaItemNodeIdsArray,
+        ]),
+      ]
 
-    // save the node id's so we can touch them on the next build
-    // so that we don't have to refetch all nodes
-    await setPersistentCache({ key: CREATED_NODE_IDS, value: createdNodeIds })
+      // save the node id's so we can touch them on the next build
+      // so that we don't have to refetch all nodes
+      await setPersistentCache({ key: CREATED_NODE_IDS, value: createdNodeIds })
+    }
 
-    store.dispatch.logger.stopActivityTimer({
+    getStore().dispatch.logger.stopActivityTimer({
       typeName: `MediaItems`,
     })
   }

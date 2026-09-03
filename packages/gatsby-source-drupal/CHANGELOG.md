@@ -3,6 +3,455 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [6.16.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.16.0/packages/gatsby-source-drupal) (2026-01-26)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.16)
+
+#### Bug Fixes
+
+- use more explicit node.js version range [#39398](https://github.com/gatsbyjs/gatsby/issues/39398) ([c355640](https://github.com/gatsbyjs/gatsby/commit/c35564071466681951402a04fb33ae34cc673a2b))
+- bump `body-parser` to resolve `qs` vulnerability warning resolve [#39396](https://github.com/gatsbyjs/gatsby/issues/39396) ([2569b3a](https://github.com/gatsbyjs/gatsby/commit/2569b3a7b5fde48b64bfa554d15b401bd8575efd))
+
+#### Other Changes
+
+- Revert "chore(release): Publish next pre-minor" ([3539ec8](https://github.com/gatsbyjs/gatsby/commit/3539ec8d8973e8eabbeb10734e3bb54bd831ac6c))
+
+## [6.15.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.15.0/packages/gatsby-source-drupal) (2025-08-27)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.15)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.14.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.14.0/packages/gatsby-source-drupal) (2024-11-06)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.14)
+
+#### Bug Fixes
+
+- update minor and patch dependencies for gatsby-source-drupal [#39126](https://github.com/gatsbyjs/gatsby/issues/39126) ([0f8b101](https://github.com/gatsbyjs/gatsby/commit/0f8b1013ccbefdfdb16137ac1f10f367daf3012d))
+- update dependency agentkeepalive to ^4.5.0 for gatsby-source-drupal [#38511](https://github.com/gatsbyjs/gatsby/issues/38511) ([8bbaea8](https://github.com/gatsbyjs/gatsby/commit/8bbaea8d5230b915ca6261a1579e42f774312473))
+
+### [6.13.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.13.1/packages/gatsby-source-drupal) (2024-01-23)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.13.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.13.0/packages/gatsby-source-drupal) (2023-12-18)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.13)
+
+#### Features
+
+- image and file cdn url generator adapter implementation [#38685](https://github.com/gatsbyjs/gatsby/issues/38685) [#38715](https://github.com/gatsbyjs/gatsby/issues/38715) [#discussion_r1414135797](https://github.com/gatsbyjs/gatsby/issues/discussion_r1414135797) [#38735](https://github.com/gatsbyjs/gatsby/issues/38735) [#38719](https://github.com/gatsbyjs/gatsby/issues/38719) ([4a780fb](https://github.com/gatsbyjs/gatsby/commit/4a780fbac717b1df337f156e2ac4b2da6478106b))
+
+### [6.12.3](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.12.3/packages/gatsby-source-drupal) (2023-10-26)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [6.12.2](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.12.2/packages/gatsby-source-drupal) (2023-10-20)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [6.12.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.12.1/packages/gatsby-source-drupal) (2023-10-09)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.12.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.12.0/packages/gatsby-source-drupal) (2023-08-24)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.12)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.11.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.11.0/packages/gatsby-source-drupal) (2023-06-15)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.11)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.10.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.10.0/packages/gatsby-source-drupal) (2023-05-16)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.10)
+
+#### Features
+
+- add `typePrefix` option [#37967](https://github.com/gatsbyjs/gatsby/issues/37967) ([3f8c55b](https://github.com/gatsbyjs/gatsby/commit/3f8c55b087db6ef0a6e77872f6fda14b75182720))
+
+#### Bug Fixes
+
+- add image cdn support for `files` type and `typePrefix` [#38057](https://github.com/gatsbyjs/gatsby/issues/38057) ([dfdeed4](https://github.com/gatsbyjs/gatsby/commit/dfdeed44b369e2e2ce25bb59ca98bbcc17bc4a8a))
+- find mimetype field [#38056](https://github.com/gatsbyjs/gatsby/issues/38056) ([e5e2bb7](https://github.com/gatsbyjs/gatsby/commit/e5e2bb7040b5268a0508c2cf17c6a7b421a8e0bb))
+
+## [6.9.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.9.0/packages/gatsby-source-drupal) (2023-04-18)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.9)
+
+#### Bug Fixes
+
+- update minor and patch dependencies for gatsby-source-drupal [#37875](https://github.com/gatsbyjs/gatsby/issues/37875) ([04243f2](https://github.com/gatsbyjs/gatsby/commit/04243f239fc8ff437eab3fe68740b1b6147f0499))
+
+#### Chores
+
+- Improve README wording ([68510e1](https://github.com/gatsbyjs/gatsby/commit/68510e191507caabdfd19dfb86c7a595c9fbc0a3))
+
+## [6.8.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.8.0/packages/gatsby-source-drupal) (2023-03-21)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.8)
+
+#### Features
+
+- filter api requests by languages [#37684](https://github.com/gatsbyjs/gatsby/issues/37684) ([310b30d](https://github.com/gatsbyjs/gatsby/commit/310b30d3dac26a4557bda8fdd915115e4839bd6d))
+
+### [6.7.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.7.1/packages/gatsby-source-drupal) (2023-02-23)
+
+#### Features
+
+- filter api requests by languages [#37684](https://github.com/gatsbyjs/gatsby/issues/37684) [#37690](https://github.com/gatsbyjs/gatsby/issues/37690) ([81619b2](https://github.com/gatsbyjs/gatsby/commit/81619b25b0c9d8d60f7bbc639eded68c4fb330e1))
+
+## [6.7.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.7.0/packages/gatsby-source-drupal) (2023-02-21)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.7)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.6.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.6.0/packages/gatsby-source-drupal) (2023-02-07)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.6)
+
+#### Bug Fixes
+
+- Make Image CDN error only `panicOnBuild` [#37601](https://github.com/gatsbyjs/gatsby/issues/37601) ([90cc0c5](https://github.com/gatsbyjs/gatsby/commit/90cc0c5344716423df271b719c540ffd0f6163aa))
+- update babel monorepo [#37568](https://github.com/gatsbyjs/gatsby/issues/37568) ([13a0a9e](https://github.com/gatsbyjs/gatsby/commit/13a0a9e83dcb015b65dff6b73cdd5dea09c2988f))
+
+## [6.5.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.5.0/packages/gatsby-source-drupal) (2023-01-24)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.5)
+
+#### Features
+
+- drupal langcode as notlangcode [#37445](https://github.com/gatsbyjs/gatsby/issues/37445) ([3e8bb5a](https://github.com/gatsbyjs/gatsby/commit/3e8bb5ae2b8b56d426cd37d0e7751dc9186bd4aa))
+
+#### Bug Fixes
+
+- await async handleDeletedNode [#37435](https://github.com/gatsbyjs/gatsby/issues/37435) ([e575a0a](https://github.com/gatsbyjs/gatsby/commit/e575a0ab9e8e438931ec3ea553bbd41080d8b333))
+
+### [6.4.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.4.1/packages/gatsby-source-drupal) (2023-01-13)
+
+#### Features
+
+- drupal langcode as notlangcode [#37445](https://github.com/gatsbyjs/gatsby/issues/37445) [#37462](https://github.com/gatsbyjs/gatsby/issues/37462) [#37445](https://github.com/gatsbyjs/gatsby/issues/37445) ([0df719e](https://github.com/gatsbyjs/gatsby/commit/0df719e33a6a539b8127f7e561b3c32f6b379e89))
+
+#### Bug Fixes
+
+- await async handleDeletedNode [#37435](https://github.com/gatsbyjs/gatsby/issues/37435) [#37461](https://github.com/gatsbyjs/gatsby/issues/37461) ([1761903](https://github.com/gatsbyjs/gatsby/commit/1761903fa7c81b1b792a99966cf0734826f2c229))
+
+## [6.4.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.4.0/packages/gatsby-source-drupal) (2023-01-10)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.4)
+
+#### Chores
+
+- update babel monorepo [#37386](https://github.com/gatsbyjs/gatsby/issues/37386) ([b941876](https://github.com/gatsbyjs/gatsby/commit/b94187633d94d0f0071b38ffe93380dd802ec70f))
+
+### [6.3.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.3.1/packages/gatsby-source-drupal) (2022-12-14)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.3.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.3.0/packages/gatsby-source-drupal) (2022-12-13)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.3)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.2.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.2.0/packages/gatsby-source-drupal) (2022-11-25)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.2)
+
+#### Features
+
+- Provide proxyUrl in addition to baseUrl to allow using CDN, API gateway, etc. [#36819](https://github.com/gatsbyjs/gatsby/issues/36819) ([e0cb9f6](https://github.com/gatsbyjs/gatsby/commit/e0cb9f6ed88ba918552a63ce14819cbad059d7a9))
+
+## [6.1.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.1.0/packages/gatsby-source-drupal) (2022-11-22)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.1)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [6.0.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@6.0.0/packages/gatsby-source-drupal) (2022-11-08)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.0)
+
+#### Bug Fixes
+
+- update dependency body-parser to ^1.20.1 for gatsby-source-drupal [#36940](https://github.com/gatsbyjs/gatsby/issues/36940) ([a5e4c47](https://github.com/gatsbyjs/gatsby/commit/a5e4c47940368cd058ee823ffce66038519aa052))
+
+#### Chores
+
+- Update peerDeps [#36965](https://github.com/gatsbyjs/gatsby/issues/36965) ([b624442](https://github.com/gatsbyjs/gatsby/commit/b6244424fe8b724cbc23b80b2b4f5424cc2055a4))
+- apply patches for v5 [#36796](https://github.com/gatsbyjs/gatsby/issues/36796) ([25f79b6](https://github.com/gatsbyjs/gatsby/commit/25f79b6c3719fdf09584ade620a05c66ba2a697c))
+
+## [5.25.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.25.0/packages/gatsby-source-drupal) (2022-09-27)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.24)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.24.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.24.1/packages/gatsby-source-drupal) (2022-09-22)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.24.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.24.0/packages/gatsby-source-drupal) (2022-09-13)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.23)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.23.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.23.0/packages/gatsby-source-drupal) (2022-08-30)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.22)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.22.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.22.1/packages/gatsby-source-drupal) (2022-08-18)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.22.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.22.0/packages/gatsby-source-drupal) (2022-08-16)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.21)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.21.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.21.0/packages/gatsby-source-drupal) (2022-08-02)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.20)
+
+#### Bug Fixes
+
+- Add langcode to manifest ID [#35514](https://github.com/gatsbyjs/gatsby/issues/35514) ([85391f6](https://github.com/gatsbyjs/gatsby/commit/85391f615fa543aae2921d8aa21e41b36a472762))
+
+## [5.20.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.20.0/packages/gatsby-source-drupal) (2022-07-19)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.19)
+
+#### Bug Fixes
+
+- Ensure node updates are handled sequentially to avoid race conditions when saving nodes [#36026](https://github.com/gatsbyjs/gatsby/issues/36026) ([428355c](https://github.com/gatsbyjs/gatsby/commit/428355cc88396ad7c7d2728416bd9f79c4c9f2f9))
+
+### [5.19.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.19.1/packages/gatsby-source-drupal) (2022-07-12)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.19.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.19.0/packages/gatsby-source-drupal) (2022-07-05)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.18)
+
+#### Bug Fixes
+
+- update dependency got to ^11.8.5 for gatsby-source-drupal [#35801](https://github.com/gatsbyjs/gatsby/issues/35801) ([f645928](https://github.com/gatsbyjs/gatsby/commit/f645928cfb6e5ed8bf13ac1cecfe766da4089b89))
+
+## [5.18.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.18.0/packages/gatsby-source-drupal) (2022-06-21)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.17)
+
+#### Bug Fixes
+
+- drupal image cdn probe 404 + imageCDN option [#35855](https://github.com/gatsbyjs/gatsby/issues/35855) ([7511ee7](https://github.com/gatsbyjs/gatsby/commit/7511ee7407e127a135375434062b52427440ac65))
+
+#### Chores
+
+- Document fix for 406 fix [#35927](https://github.com/gatsbyjs/gatsby/issues/35927) ([76ed6a8](https://github.com/gatsbyjs/gatsby/commit/76ed6a8e208114c6c453b9dcca5eb60979275a02))
+
+### [5.17.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.17.1/packages/gatsby-source-drupal) (2022-06-08)
+
+#### Bug Fixes
+
+- drupal image cdn probe 404 + imageCDN option [#35855](https://github.com/gatsbyjs/gatsby/issues/35855) [#35882](https://github.com/gatsbyjs/gatsby/issues/35882) ([7ceb16d](https://github.com/gatsbyjs/gatsby/commit/7ceb16dcf42e62906f68ae6e9d02f2fd60ddb9dc))
+
+## [5.17.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.17.0/packages/gatsby-source-drupal) (2022-06-07)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.16)
+
+#### Features
+
+- Add setRequestHeaders action/api [#35655](https://github.com/gatsbyjs/gatsby/issues/35655) ([f520e59](https://github.com/gatsbyjs/gatsby/commit/f520e59599a237b0a8ed105bff931c5058e2bfa8))
+- Allow sites to configure the request timeout [#35794](https://github.com/gatsbyjs/gatsby/issues/35794) ([8166d4a](https://github.com/gatsbyjs/gatsby/commit/8166d4a74b768bf4247db413d1a544f1e923716e))
+
+#### Bug Fixes
+
+- Update `createRemoteFileNode` args [#35422](https://github.com/gatsbyjs/gatsby/issues/35422) fixes [#35363](https://github.com/gatsbyjs/gatsby/issues/35363) ([caaf7a5](https://github.com/gatsbyjs/gatsby/commit/caaf7a555bb42043044f05743eec0ac1ad372cc4))
+- Add a check for data prop [#35719](https://github.com/gatsbyjs/gatsby/issues/35719) ([0d1f44e](https://github.com/gatsbyjs/gatsby/commit/0d1f44ebcdfca0f9a2f405b94dc11ffc9129a793))
+
+### [5.16.2](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.16.2/packages/gatsby-source-drupal) (2022-06-01)
+
+#### Features
+
+- Allow sites to configure the request timeout [#35794](https://github.com/gatsbyjs/gatsby/issues/35794) [#35820](https://github.com/gatsbyjs/gatsby/issues/35820) ([4f4d2d7](https://github.com/gatsbyjs/gatsby/commit/4f4d2d7c7d805e9a7d2a1c2f8156aa50ec1e87f6))
+
+### [5.16.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.16.1/packages/gatsby-source-drupal) (2022-06-01)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.16.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.16.0/packages/gatsby-source-drupal) (2022-05-24)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.15)
+
+#### Bug Fixes
+
+- Image cdn fixes fixes [#35619](https://github.com/gatsbyjs/gatsby/issues/35619) ([15a3fbf](https://github.com/gatsbyjs/gatsby/commit/15a3fbf720b4e38eca390830538bdb50042ba392))
+- add placeholder style name plugin option to the options schema [#35644](https://github.com/gatsbyjs/gatsby/issues/35644) ([6fd8bf7](https://github.com/gatsbyjs/gatsby/commit/6fd8bf7abba95ae4d7d6bfdadd93e45f2cd67e49))
+
+## [5.15.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.15.0/packages/gatsby-source-drupal) (2022-05-10)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.14)
+
+#### Features
+
+- Persist backreference data individually in cache so cheaper to get/set [#35323](https://github.com/gatsbyjs/gatsby/issues/35323) ([1257a8d](https://github.com/gatsbyjs/gatsby/commit/1257a8d75882c9700d76a2d1498eeaba9255f52d))
+- Image CDN support [#35265](https://github.com/gatsbyjs/gatsby/issues/35265) ([82a532a](https://github.com/gatsbyjs/gatsby/commit/82a532ae4f93090f0b0912dc39fac2823845306d))
+
+#### Bug Fixes
+
+- update minor and patch dependencies for gatsby-source-drupal [#35554](https://github.com/gatsbyjs/gatsby/issues/35554) ([fb98116](https://github.com/gatsbyjs/gatsby/commit/fb98116eed3ff6888ed255a94350f123990d9a4f))
+- fix Image CDN optional chaining call fix [#35498](https://github.com/gatsbyjs/gatsby/issues/35498) ([53de2d0](https://github.com/gatsbyjs/gatsby/commit/53de2d00129ad830f3a6e803a5c30e7e57d4b8b1))
+
+#### Other Changes
+
+- Changes from Wards review at https://github.com/gatsbyjs/gatsby/pull/35265#pullrequestreview-949950960 [#pullrequestreview-949950960](https://github.com/gatsbyjs/gatsby/issues/pullrequestreview-949950960) [#35475](https://github.com/gatsbyjs/gatsby/issues/35475) ([3036ba0](https://github.com/gatsbyjs/gatsby/commit/3036ba00ba6fdc2b690dd440c9f12781dc967de3))
+- test image cdn node data [#35470](https://github.com/gatsbyjs/gatsby/issues/35470) ([238faef](https://github.com/gatsbyjs/gatsby/commit/238faef918d9dc649304b9ab169c7808586ab5fa))
+
+## [5.14.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.14.0/packages/gatsby-source-drupal) (2022-04-28)
+
+#### Features
+
+- Image CDN support [#35265](https://github.com/gatsbyjs/gatsby/issues/35265) [#35510](https://github.com/gatsbyjs/gatsby/issues/35510) ([f938716](https://github.com/gatsbyjs/gatsby/commit/f938716b1b734ea58d407e5d8d7a2c2cf6b88156))
+
+#### Bug Fixes
+
+- fix Image CDN optional chaining call fix [#35498](https://github.com/gatsbyjs/gatsby/issues/35498) fix [#35511](https://github.com/gatsbyjs/gatsby/issues/35511) ([1752f38](https://github.com/gatsbyjs/gatsby/commit/1752f38102198603a43bf7ba049ddfa57c0e0b7f))
+
+#### Other Changes
+
+- Changes from Wards review at https://github.com/gatsbyjs/gatsby/pull/35265#pullrequestreview-949950960 [#pullrequestreview-949950960](https://github.com/gatsbyjs/gatsby/issues/pullrequestreview-949950960) [#35475](https://github.com/gatsbyjs/gatsby/issues/35475) [#35512](https://github.com/gatsbyjs/gatsby/issues/35512) ([97755c8](https://github.com/gatsbyjs/gatsby/commit/97755c89ccf484761335ad5191b7a096c4f27fc7))
+
+## [5.13.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.13.0/packages/gatsby-source-drupal) (2022-04-26)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.13)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.12.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.12.1/packages/gatsby-source-drupal) (2022-04-13)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.12.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.12.0/packages/gatsby-source-drupal) (2022-04-12)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.12)
+
+#### Bug Fixes
+
+- update minor and patch dependencies for gatsby-source-drupal [#34981](https://github.com/gatsbyjs/gatsby/issues/34981) ([e0ce04f](https://github.com/gatsbyjs/gatsby/commit/e0ce04faf4bcb71198648f4697b5cfd813e8e1ea))
+
+#### Chores
+
+- Delete .Rhistory [#35251](https://github.com/gatsbyjs/gatsby/issues/35251) ([6328c9d](https://github.com/gatsbyjs/gatsby/commit/6328c9d355a85c647f09fdfb428ef458bc04a312))
+
+### [5.11.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.11.1/packages/gatsby-source-drupal) (2022-03-31)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.11.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.11.0/packages/gatsby-source-drupal) (2022-03-29)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.11)
+
+#### Chores
+
+- replace all uses of gatsbyjs.org with gatsbyjs.com [#35101](https://github.com/gatsbyjs/gatsby/issues/35101) ([16cff41](https://github.com/gatsbyjs/gatsby/commit/16cff413e154dc4e74fc5be631d52c76273e5cbc))
+
+### [5.10.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.10.1/packages/gatsby-source-drupal) (2022-03-23)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.10.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.10.0/packages/gatsby-source-drupal) (2022-03-16)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.10)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.9.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.9.1/packages/gatsby-source-drupal) (2022-03-09)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.9.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.9.0/packages/gatsby-source-drupal) (2022-03-01)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.9)
+
+#### Chores
+
+- Format changelog files ([088f23b](https://github.com/gatsbyjs/gatsby/commit/088f23b084b67f746a383e06e9216cef83270317))
+
+### [5.8.2](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.8.2/packages/gatsby-source-drupal) (2022-03-01)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.8.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.8.1/packages/gatsby-source-drupal) (2022-02-25)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.8.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.8.0/packages/gatsby-source-drupal) (2022-02-22)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.8)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.7.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.7.0/packages/gatsby-source-drupal) (2022-02-08)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.7)
+
+#### Bug Fixes
+
+- update dependency opentracing to ^0.14.7 for gatsby-source-drupal [#34652](https://github.com/gatsbyjs/gatsby/issues/34652) ([8088076](https://github.com/gatsbyjs/gatsby/commit/8088076aafca82581b483258b95446abdce8a43a))
+
+## [5.6.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.6.0/packages/gatsby-source-drupal) (2022-01-25)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.6)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.5.2](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.5.2/packages/gatsby-source-drupal) (2022-01-17)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+### [5.5.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.5.1/packages/gatsby-source-drupal) (2022-01-12)
+
+**Note:** Version bump only for package gatsby-source-drupal
+
+## [5.5.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.5.0/packages/gatsby-source-drupal) (2022-01-11)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.5)
+
+#### Bug Fixes
+
+- update minor and patch dependencies for gatsby-source-drupal [#34375](https://github.com/gatsbyjs/gatsby/issues/34375) ([4628093](https://github.com/gatsbyjs/gatsby/commit/46280933dad543845286dfc5d6fb0c860f7ad58b))
+
+## [5.4.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.4.0/packages/gatsby-source-drupal) (2021-12-14)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.4)
+
+#### Features
+
+- update drupal to use latest nodemanifest api [#34176](https://github.com/gatsbyjs/gatsby/issues/34176) ([7f77107](https://github.com/gatsbyjs/gatsby/commit/7f771071bb404a593fa54e2c66994134e7977f14))
+
+#### Bug Fixes
+
+- update dependency got to ^11.8.3 for gatsby-source-drupal [#34131](https://github.com/gatsbyjs/gatsby/issues/34131) ([c5fdd39](https://github.com/gatsbyjs/gatsby/commit/c5fdd39fe7d63c30e455166fee4967389d3660dc))
+
+## [5.3.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.3.0/packages/gatsby-source-drupal) (2021-12-01)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.3)
+
+#### Other Changes
+
+- Bump timeout from 15s to 30s [#34035](https://github.com/gatsbyjs/gatsby/issues/34035) ([0d683cd](https://github.com/gatsbyjs/gatsby/commit/0d683cd52ee4dbc470f24b23973c3aa261ff494f))
+
 ## [5.2.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-source-drupal@5.2.0/packages/gatsby-source-drupal) (2021-11-16)
 
 [🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.2)

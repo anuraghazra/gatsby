@@ -3,7 +3,6 @@ import {
   AnyEventObject,
   ActionFunction,
   spawn,
-  ActionFunctionMap,
   DoneEventObject,
 } from "xstate"
 import { IBuildContext } from "../../services"
@@ -16,6 +15,11 @@ import { store } from "../../redux"
 import { ProgramStatus } from "../../redux/types"
 import { createWebpackWatcher } from "../../services/listen-to-webpack"
 import { callRealApi } from "../../utils/call-deferred-api"
+import {
+  writeGraphQLFragments,
+  writeGraphQLSchema,
+} from "../../utils/graphql-typegen/file-writes"
+import { writeTypeScriptTypes } from "../../utils/graphql-typegen/ts-codegen"
 /**
  * Handler for when we're inside handlers that should be able to mutate nodes
  * Instead of queueing, we call it right away
@@ -193,7 +197,61 @@ export const clearPendingQueryRuns = assign<IBuildContext>(() => {
   }
 })
 
-export const buildActions: ActionFunctionMap<IBuildContext, AnyEventObject> = {
+export const schemaTypegen: ActionFunction<
+  IBuildContext,
+  AnyEventObject
+> = async (context, event) => {
+  const schema = event.payload.payload
+  const directory = context.program.directory
+
+  context.reporter!.verbose(`Re-Generating schema.graphql`)
+
+  try {
+    await writeGraphQLSchema(directory, schema)
+  } catch (err) {
+    context.reporter!.panicOnBuild({
+      id: `12100`,
+      context: {
+        sourceMessage: err,
+      },
+    })
+  }
+}
+
+export const definitionsTypegen: ActionFunction<
+  IBuildContext,
+  AnyEventObject
+> = async (context, event) => {
+  const definitions = event.payload.payload
+  const { schema, config } = context.store!.getState()
+  const directory = context.program.directory
+  const graphqlTypegenOptions = config.graphqlTypegen
+
+  if (!graphqlTypegenOptions) {
+    throw new Error(`graphqlTypegen option is falsy. This should never happen.`)
+  }
+
+  context.reporter!.verbose(`Re-Generating fragments.graphql & TS Types`)
+
+  try {
+    await writeGraphQLFragments(directory, definitions)
+    await writeTypeScriptTypes(
+      directory,
+      schema,
+      definitions,
+      graphqlTypegenOptions
+    )
+  } catch (err) {
+    context.reporter!.panicOnBuild({
+      id: `12100`,
+      context: {
+        sourceMessage: err,
+      },
+    })
+  }
+}
+
+export const buildActions = {
   callApi,
   markNodesDirty,
   addNodeMutation,
@@ -219,4 +277,6 @@ export const buildActions: ActionFunctionMap<IBuildContext, AnyEventObject> = {
   logError,
   trackRequestedQueryRun,
   clearPendingQueryRuns,
+  schemaTypegen,
+  definitionsTypegen,
 }

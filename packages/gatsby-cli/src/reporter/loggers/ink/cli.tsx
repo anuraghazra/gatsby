@@ -1,13 +1,12 @@
 import React from "react"
 import { Box, Static } from "ink"
 import { isTTY } from "../../../util/is-tty"
-import { trackBuildError } from "gatsby-telemetry"
 import { Spinner } from "./components/spinner"
 import { ProgressBar } from "./components/progress-bar"
 import { Message, IMessageProps } from "./components/messages"
 import { Error as ErrorComponent } from "./components/error"
 import Develop from "./components/develop"
-import PageTree from "./components/pageTree"
+import Trees from "./components/trees"
 import { IGatsbyCLIState, IActivity, ILog } from "../../redux/types"
 import { ActivityLogLevels } from "../../constants"
 import { IStructuredError } from "../../../structured-errors/types"
@@ -18,7 +17,7 @@ interface ICLIProps {
   logs: IGatsbyCLIState
   messages: Array<ILog>
   showStatusBar: boolean
-  showPageTree: boolean
+  showTrees: boolean
 }
 
 interface ICLIState {
@@ -32,16 +31,7 @@ class CLI extends React.Component<ICLIProps, ICLIState> {
   }
   memoizedReactElementsForMessages: Array<React.ReactElement> = []
 
-  componentDidCatch(error: Error, info: React.ErrorInfo): void {
-    trackBuildError(`INK`, {
-      error: {
-        error: {
-          stack: info.componentStack,
-        },
-        text: error.message,
-      },
-    })
-  }
+  componentDidCatch(): void {}
 
   static getDerivedStateFromError(error: Error): ICLIState {
     return { hasError: true, error }
@@ -52,7 +42,7 @@ class CLI extends React.Component<ICLIProps, ICLIState> {
       logs: { activities },
       messages,
       showStatusBar,
-      showPageTree,
+      showTrees,
     } = this.props
 
     const { hasError, error } = this.state
@@ -104,7 +94,7 @@ class CLI extends React.Component<ICLIProps, ICLIState> {
               )
             }
           </Static>
-          {showPageTree && <PageTree />}
+          {showTrees && <Trees />}
 
           {spinners.map(activity => (
             <Spinner key={activity.id} {...activity} />

@@ -9,11 +9,10 @@ import {
   structureWebpackErrors,
 } from "../utils/webpack-error-utils"
 
-import { printDeprecationWarnings } from "../utils/print-deprecation-warnings"
 import { showExperimentNotices } from "../utils/show-experiment-notice"
 import { printInstructions } from "../utils/print-instructions"
 import { prepareUrls } from "../utils/prepare-urls"
-import { startServer, IWebpackWatchingPauseResume } from "../utils/start-server"
+import { startServer, WebpackWatching } from "../utils/start-server"
 import { WebsocketManager } from "../utils/websocket-manager"
 import { IBuildContext } from "./"
 import {
@@ -30,7 +29,7 @@ export async function startWebpackServer({
 }: Partial<IBuildContext>): Promise<{
   compiler: Compiler
   websocketManager: WebsocketManager
-  webpackWatching: IWebpackWatchingPauseResume
+  webpackWatching: WebpackWatching
 }> {
   if (!program || !app || !store) {
     report.panic(`Missing required params`)
@@ -75,7 +74,7 @@ export async function startWebpackServer({
         const urls = prepareUrls(
           program.https ? `https` : `http`,
           program.host,
-          program.proxyPort
+          program.port
         )
         const isSuccessful = !stats.hasErrors()
 
@@ -87,7 +86,7 @@ export async function startWebpackServer({
             program.sitePackageJson.name || `(Unnamed package)`,
             urls
           )
-          printDeprecationWarnings()
+
           if (program.open) {
             try {
               await openurl(urls.localUrlForBrowser)
@@ -105,7 +104,7 @@ export async function startWebpackServer({
 
         if (webpackActivity) {
           if (stats.hasWarnings()) {
-            const rawMessages = stats.toJson({ moduleTrace: false })
+            const rawMessages = stats.toJson({ all: false, warnings: true })
             reportWebpackWarnings(rawMessages.warnings, report)
           }
 

@@ -1,6 +1,6 @@
-// "engines-fs-provider" must be first import, as it sets up global
-// fs and this need to happen before anything else tries to import fs
-import "../../utils/engines-fs-provider"
+// "bootstrap" must be first import, as it sets up multiple globals that need to be set early
+// see details in that module
+import "./bootstrap"
 
 import { ExecutionResult, Source } from "graphql"
 import { uuid } from "gatsby-core-utils"
@@ -11,7 +11,7 @@ import { actions } from "../../redux/actions"
 import reporter from "gatsby-cli/lib/reporter"
 import { GraphQLRunner, IQueryOptions } from "../../query/graphql-runner"
 import { waitJobsByRequest } from "../../utils/wait-until-jobs-complete"
-import { setGatsbyPluginCache } from "../../utils/require-gatsby-plugin"
+import { setGatsbyPluginCache } from "../../utils/import-gatsby-plugin"
 import apiRunnerNode from "../../utils/api-runner-node"
 import type { IGatsbyPage, IGatsbyState } from "../../redux/types"
 import { findPageByPath } from "../../utils/find-page-by-path"
@@ -43,12 +43,34 @@ export class GraphQLEngine {
     this.getRunner()
   }
 
+  private setupPathPrefix(pathPrefix: string): void {
+    if (pathPrefix) {
+      store.dispatch({
+        type: `SET_PROGRAM`,
+        payload: {
+          prefixPaths: true,
+        },
+      })
+
+      store.dispatch({
+        type: `SET_SITE_CONFIG`,
+        payload: {
+          ...store.getState().config,
+          pathPrefix,
+        },
+      })
+    }
+  }
+
   private async _doGetRunner(): Promise<GraphQLRunner> {
     await tracerReadyPromise
 
     const wrapActivity = reporter.phantomActivity(`Initializing GraphQL Engine`)
     wrapActivity.start()
     try {
+      // @ts-ignore PATH_PREFIX is being "inlined" by bundler
+      this.setupPathPrefix(PATH_PREFIX)
+
       // @ts-ignore SCHEMA_SNAPSHOT is being "inlined" by bundler
       store.dispatch(actions.createTypes(SCHEMA_SNAPSHOT))
 
@@ -59,28 +81,24 @@ export class GraphQLEngine {
         payload: flattenedPlugins,
       })
 
-      for (const pluginName of Object.keys(gatsbyNodes)) {
+      for (const plugin of gatsbyNodes) {
+        const { name, module, importKey } = plugin
         setGatsbyPluginCache(
-          { name: pluginName, resolve: `` },
+          { name, resolve: ``, importKey },
           `gatsby-node`,
-          gatsbyNodes[pluginName]
+          module
         )
       }
-      for (const pluginName of Object.keys(gatsbyWorkers)) {
+      for (const plugin of gatsbyWorkers) {
+        const { name, module, importKey } = plugin
         setGatsbyPluginCache(
-          { name: pluginName, resolve: `` },
+          { name, resolve: ``, importKey },
           `gatsby-worker`,
-          gatsbyWorkers[pluginName]
+          module
         )
       }
 
-      if (_CFLAGS_.GATSBY_MAJOR === `4`) {
-        await apiRunnerNode(`onPluginInit`, { parentSpan: wrapActivity.span })
-      } else {
-        await apiRunnerNode(`unstable_onPluginInit`, {
-          parentSpan: wrapActivity.span,
-        })
-      }
+      await apiRunnerNode(`onPluginInit`, { parentSpan: wrapActivity.span })
       await apiRunnerNode(`createSchemaCustomization`, {
         parentSpan: wrapActivity.span,
       })
@@ -177,6 +195,9 @@ export class GraphQLEngine {
     }
   }
 
+  /**
+   * @deprecated use findEnginePageByPath exported from page-ssr module instead
+   */
   public findPageByPath(pathName: string): IGatsbyPage | undefined {
     // adapter so `findPageByPath` use SitePage nodes in datastore
     // instead of `pages` redux slice

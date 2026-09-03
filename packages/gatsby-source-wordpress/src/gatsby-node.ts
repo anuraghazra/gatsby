@@ -1,44 +1,68 @@
-import { runApisInSteps } from "./utils/run-steps"
+import { runApiSteps } from "./utils/run-steps"
 import * as steps from "./steps"
 
-module.exports = runApisInSteps({
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  "onPluginInit|unstable_onPluginInit": [
+exports.onPluginInit = runApiSteps(
+  [
     steps.setGatsbyApiToState,
     steps.setErrorMap,
-    steps.tempPreventMultipleInstances,
+    steps.setRequestHeaders,
+    steps.hideAuthPluginOptions,
   ],
+  `onPluginInit`
+)
 
-  pluginOptionsSchema: steps.pluginOptionsSchema,
+exports.onPreBootstrap = runApiSteps(
+  [steps.restoreAuthPluginOptions],
+  `onPreBootstrap`
+)
 
-  createSchemaCustomization: [
+exports.pluginOptionsSchema = steps.pluginOptionsSchema
+
+exports.createSchemaCustomization = runApiSteps(
+  [
     steps.setGatsbyApiToState,
     steps.ensurePluginRequirementsAreMet,
     steps.ingestRemoteSchema,
     steps.createSchemaCustomization,
+    steps.addRemoteFileAllowedUrl,
   ],
+  `createSchemaCustomization`
+)
 
-  sourceNodes: [
+exports.sourceNodes = runApiSteps(
+  [
     steps.setGatsbyApiToState,
     steps.persistPreviouslyCachedImages,
     steps.sourceNodes,
     steps.setImageNodeIdCache,
   ],
+  `sourceNodes`
+)
 
-  onPreExtractQueries: [
-    steps.onPreExtractQueriesInvokeLeftoverPreviewCallbacks,
-  ],
+exports.onPreExtractQueries = runApiSteps(
+  [steps.onPreExtractQueriesInvokeLeftoverPreviewCallbacks],
+  `onPreExtractQueries`
+)
 
-  onPostBuild: [steps.setImageNodeIdCache, steps.logPostBuildWarnings],
+exports.onPostBuild = runApiSteps(
+  [steps.setImageNodeIdCache, steps.logPostBuildWarnings],
+  `onPostBuild`
+)
 
-  onCreatePage: [
+exports.onCreatePage = runApiSteps(
+  [
     steps.onCreatepageSavePreviewNodeIdToPageDependency,
     steps.onCreatePageRespondToPreviewStatusQuery,
   ],
+  `onCreatePage`
+)
 
-  onCreateDevServer: [
+exports.onCreateDevServer = runApiSteps(
+  [
+    steps.imageRoutes,
     steps.setImageNodeIdCache,
     steps.logPostBuildWarnings,
     steps.startPollingForContentUpdates,
   ],
-})
+  `onCreateDevServer`
+)

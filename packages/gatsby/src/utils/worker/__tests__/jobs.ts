@@ -5,13 +5,7 @@ import * as path from "path"
 import { waitUntilAllJobsComplete } from "../../jobs/manager"
 import type { MessagesFromChild, MessagesFromParent } from "../messaging"
 import { getReduxJobs, getJobsMeta } from "./test-helpers/child-for-tests"
-
-jest.mock(`gatsby-telemetry`, () => {
-  return {
-    decorateEvent: jest.fn(),
-    trackCli: jest.fn(),
-  }
-})
+import { compileGatsbyFiles } from "../../parcel/compile-gatsby-files"
 
 // jest.mock(`gatsby-cli/lib/reporter`, () => jest.fn())
 
@@ -42,6 +36,7 @@ describe(`worker (jobs)`, () => {
     worker.onMessage(receivedMessageSpy)
 
     const siteDirectory = path.join(__dirname, `fixtures`, `sample-site`)
+    await compileGatsbyFiles(siteDirectory)
 
     await Promise.all(
       worker.all.loadConfigAndPlugins({
@@ -68,9 +63,9 @@ describe(`worker (jobs)`, () => {
     workerStateAfter = await Promise.all(worker.all.getReduxJobs())
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     if (worker) {
-      worker.end()
+      await Promise.all(worker.end())
       worker = undefined
     }
   })
@@ -115,28 +110,28 @@ describe(`worker (jobs)`, () => {
       it(`.then on createJobV2 action creator is called when job finishes`, () => {
         // we expect .then callback in worker to be called with results
         expect(workersJobsMeta).toSatisfyAll(
-          ({ dotThenWasCalledWith }: typeof workersJobsMeta[0]) =>
+          ({ dotThenWasCalledWith }: (typeof workersJobsMeta)[0]) =>
             dotThenWasCalledWith?.processed === `PROCESSED: .then() job`
         )
       })
 
       it(`await on createJobV2 resumes when job finishes`, () => {
         expect(workersJobsMeta).toSatisfyAll(
-          ({ awaitReturnedWith }: typeof workersJobsMeta[0]) =>
+          ({ awaitReturnedWith }: (typeof workersJobsMeta)[0]) =>
             awaitReturnedWith?.processed === `PROCESSED: Awaited job`
         )
       })
 
       it(`.catch on createJobV2 action creator is called when job fails`, () => {
         expect(workersJobsMeta).toSatisfyAll(
-          ({ dotCatchWasCalledWith }: typeof workersJobsMeta[0]) =>
+          ({ dotCatchWasCalledWith }: (typeof workersJobsMeta)[0]) =>
             dotCatchWasCalledWith === `ERRORED: .catch() job`
         )
       })
 
       it(`error is caught when awaited job fails`, () => {
         expect(workersJobsMeta).toSatisfyAll(
-          ({ awaitThrewWith }: typeof workersJobsMeta[0]) =>
+          ({ awaitThrewWith }: (typeof workersJobsMeta)[0]) =>
             awaitThrewWith === `ERRORED: try/catched awaited job`
         )
       })
@@ -239,6 +234,7 @@ describe(`worker (jobs)`, () => {
           payload: {
             id: expect.any(String),
             error: expect.any(String),
+            stack: expect.any(String),
           },
         }),
         expect.toBeOneOf([1, 2, 3])

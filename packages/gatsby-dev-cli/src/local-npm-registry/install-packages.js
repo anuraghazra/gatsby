@@ -8,6 +8,8 @@ const installPackages = async ({
   packagesToInstall,
   yarnWorkspaceRoot,
   newlyPublishedPackageVersions,
+  externalRegistry,
+  packageManager,
 }) => {
   console.log(
     `Installing packages from local registry:\n${packagesToInstall
@@ -118,24 +120,40 @@ const installPackages = async ({
 
     // package.json files are changed - so we just want to install
     // using verdaccio registry
-    installCmd = [
-      `yarn`,
-      [`install`, `--registry=${registryUrl}`, `--ignore-engines`],
-    ]
+    const yarnCommands = [`install`]
+
+    if (!externalRegistry) {
+      yarnCommands.push(`--registry=${registryUrl}`)
+    }
+
+    installCmd = [`yarn`, yarnCommands]
   } else {
-    installCmd = [
-      `yarn`,
-      [
+    const packageAndVersionsToInstall = packagesToInstall.map(packageName => {
+      const packageVersion = newlyPublishedPackageVersions[packageName]
+      return `${packageName}@${packageVersion}`
+    })
+
+    if (packageManager === `pnpm`) {
+      const pnpmCommands = [
         `add`,
-        ...packagesToInstall.map(packageName => {
-          const packageVersion = newlyPublishedPackageVersions[packageName]
-          return `${packageName}@${packageVersion}`
-        }),
-        `--registry=${registryUrl}`,
-        `--exact`,
-        `--ignore-engines`,
-      ],
-    ]
+        ...packageAndVersionsToInstall,
+        `--save-exact`,
+      ]
+
+      if (!externalRegistry) {
+        pnpmCommands.push(`--registry=${registryUrl}`)
+      }
+
+      installCmd = [`pnpm`, pnpmCommands]
+    } else {
+      const yarnCommands = [`add`, ...packageAndVersionsToInstall, `--exact`]
+
+      if (!externalRegistry) {
+        yarnCommands.push(`--registry=${registryUrl}`)
+      }
+
+      installCmd = [`yarn`, yarnCommands]
+    }
   }
 
   try {

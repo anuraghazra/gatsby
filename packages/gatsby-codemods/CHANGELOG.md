@@ -3,6 +3,289 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.16.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.16.0/packages/gatsby-codemods) (2026-01-26)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.16)
+
+#### Bug Fixes
+
+- use more explicit node.js version range [#39398](https://github.com/gatsbyjs/gatsby/issues/39398) ([c355640](https://github.com/gatsbyjs/gatsby/commit/c35564071466681951402a04fb33ae34cc673a2b))
+
+#### Other Changes
+
+- Revert "chore(release): Publish next pre-minor" ([3539ec8](https://github.com/gatsbyjs/gatsby/commit/3539ec8d8973e8eabbeb10734e3bb54bd831ac6c))
+
+## [4.15.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.15.0/packages/gatsby-codemods) (2025-08-27)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.15)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.14.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.14.0/packages/gatsby-codemods) (2024-11-06)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.14)
+
+#### Bug Fixes
+
+- call jscodeshift natively [#38635](https://github.com/gatsbyjs/gatsby/issues/38635) ([f129c37](https://github.com/gatsbyjs/gatsby/commit/f129c37e4540754613f403af1e54e74f674b178a))
+
+### [4.13.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.13.1/packages/gatsby-codemods) (2024-01-23)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.13.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.13.0/packages/gatsby-codemods) (2023-12-18)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.13)
+
+#### Chores
+
+- update dependency @types/jscodeshift to ^0.11.11 for gatsby-codemods [#38595](https://github.com/gatsbyjs/gatsby/issues/38595) ([7a7fa5f](https://github.com/gatsbyjs/gatsby/commit/7a7fa5f8e4f324a29d9fd48c06f3f1073fd6dbc9))
+
+## [4.12.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.12.0/packages/gatsby-codemods) (2023-08-24)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.12)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.11.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.11.0/packages/gatsby-codemods) (2023-06-15)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.11)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.10.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.10.0/packages/gatsby-codemods) (2023-05-16)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.10)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.9.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.9.0/packages/gatsby-codemods) (2023-04-18)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.9)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.8.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.8.0/packages/gatsby-codemods) (2023-03-21)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.8)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.7.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.7.0/packages/gatsby-codemods) (2023-02-21)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.7)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.6.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.6.0/packages/gatsby-codemods) (2023-02-07)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.6)
+
+#### Bug Fixes
+
+- update babel monorepo [#37568](https://github.com/gatsbyjs/gatsby/issues/37568) ([13a0a9e](https://github.com/gatsbyjs/gatsby/commit/13a0a9e83dcb015b65dff6b73cdd5dea09c2988f))
+
+## [4.5.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.5.0/packages/gatsby-codemods) (2023-01-24)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.5)
+
+#### Chores
+
+- Upgrade some non-breaking major versions [#37406](https://github.com/gatsbyjs/gatsby/issues/37406) ([2ea80c0](https://github.com/gatsbyjs/gatsby/commit/2ea80c02e464fe9306f6a1eccbb6c74983a76208))
+
+## [4.4.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.4.0/packages/gatsby-codemods) (2023-01-10)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.4)
+
+#### Chores
+
+- update babel monorepo [#37386](https://github.com/gatsbyjs/gatsby/issues/37386) ([b941876](https://github.com/gatsbyjs/gatsby/commit/b94187633d94d0f0071b38ffe93380dd802ec70f))
+- update dependency @types/jscodeshift to ^0.11.6 for gatsby-codemods [#37358](https://github.com/gatsbyjs/gatsby/issues/37358) ([ccd0cc3](https://github.com/gatsbyjs/gatsby/commit/ccd0cc3a6f1640c0bcbe4b26d11fba84616ba0ca))
+
+## [4.3.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.3.0/packages/gatsby-codemods) (2022-12-13)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.3)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.2.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.2.0/packages/gatsby-codemods) (2022-11-25)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.2)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.1.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.1.0/packages/gatsby-codemods) (2022-11-22)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.1)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [4.0.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@4.0.0/packages/gatsby-codemods) (2022-11-08)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v5.0)
+
+#### Features
+
+- [v5 breaking change] change sort and aggregation fields API [#36708](https://github.com/gatsbyjs/gatsby/issues/36708) ([275b356](https://github.com/gatsbyjs/gatsby/commit/275b3562c235372ee8a43ae93a94cf91b9569d06))
+
+#### Bug Fixes
+
+- handle 'fields' field edge case in sort/aggr codemod [#36844](https://github.com/gatsbyjs/gatsby/issues/36844) ([e574964](https://github.com/gatsbyjs/gatsby/commit/e574964a99b0541054489ed23ab591ee8c770703))
+- fix spawning jscodeshift process fix [#36780](https://github.com/gatsbyjs/gatsby/issues/36780) ([04ac1d6](https://github.com/gatsbyjs/gatsby/commit/04ac1d6cb45df198ab01d119ce051d5f59b9ccb9))
+
+#### Chores
+
+- Update to GraphQL 16 [#36813](https://github.com/gatsbyjs/gatsby/issues/36813) ([9f840ad](https://github.com/gatsbyjs/gatsby/commit/9f840adc2e5fada5014f27814b49fbdf914d4ef9))
+- apply patches for v5 [#36796](https://github.com/gatsbyjs/gatsby/issues/36796) ([25f79b6](https://github.com/gatsbyjs/gatsby/commit/25f79b6c3719fdf09584ade620a05c66ba2a697c))
+- Add `sort-and-aggr-graphql` to README [#36795](https://github.com/gatsbyjs/gatsby/issues/36795) ([61f197d](https://github.com/gatsbyjs/gatsby/commit/61f197d2c6deda2d45ba185df190301bb8219676))
+- regen v5 patches [#36718](https://github.com/gatsbyjs/gatsby/issues/36718) ([569b5dc](https://github.com/gatsbyjs/gatsby/commit/569b5dcd3dc89bfc5c8b5d464a2338e2da16b7db))
+
+## [3.24.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.24.0/packages/gatsby-codemods) (2022-09-27)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.24)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.23.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.23.0/packages/gatsby-codemods) (2022-09-13)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.23)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.22.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.22.0/packages/gatsby-codemods) (2022-08-30)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.22)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.21.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.21.0/packages/gatsby-codemods) (2022-08-16)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.21)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.20.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.20.0/packages/gatsby-codemods) (2022-08-02)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.20)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.19.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.19.0/packages/gatsby-codemods) (2022-07-19)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.19)
+
+#### Chores
+
+- Update READMEs for better instructions ([0890a5c](https://github.com/gatsbyjs/gatsby/commit/0890a5cf2c881b49193113a1e1bd5fe13a2c328f))
+
+## [3.18.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.18.0/packages/gatsby-codemods) (2022-07-05)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.18)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.17.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.17.0/packages/gatsby-codemods) (2022-06-21)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.17)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.16.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.16.0/packages/gatsby-codemods) (2022-06-07)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.16)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.15.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.15.0/packages/gatsby-codemods) (2022-05-24)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.15)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.14.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.14.0/packages/gatsby-codemods) (2022-05-10)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.14)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.13.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.13.0/packages/gatsby-codemods) (2022-04-26)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.13)
+
+**Note:** Version bump only for package gatsby-codemods
+
+### [3.12.1](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.12.1/packages/gatsby-codemods) (2022-04-13)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.12.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.12.0/packages/gatsby-codemods) (2022-04-12)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.12)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.11.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.11.0/packages/gatsby-codemods) (2022-03-29)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.11)
+
+#### Chores
+
+- replace all uses of gatsbyjs.org with gatsbyjs.com [#35101](https://github.com/gatsbyjs/gatsby/issues/35101) ([16cff41](https://github.com/gatsbyjs/gatsby/commit/16cff413e154dc4e74fc5be631d52c76273e5cbc))
+
+## [3.10.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.10.0/packages/gatsby-codemods) (2022-03-16)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.10)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.9.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.9.0/packages/gatsby-codemods) (2022-03-01)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.9)
+
+#### Chores
+
+- Format changelog files ([088f23b](https://github.com/gatsbyjs/gatsby/commit/088f23b084b67f746a383e06e9216cef83270317))
+
+## [3.8.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.8.0/packages/gatsby-codemods) (2022-02-22)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.8)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.7.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.7.0/packages/gatsby-codemods) (2022-02-08)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.7)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.6.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.6.0/packages/gatsby-codemods) (2022-01-25)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.6)
+
+**Note:** Version bump only for package gatsby-codemods
+
+## [3.5.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.5.0/packages/gatsby-codemods) (2022-01-11)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.5)
+
+#### Bug Fixes
+
+- update dependency graphql to ^15.8.0 for gatsby-codemods [#34373](https://github.com/gatsbyjs/gatsby/issues/34373) ([6778193](https://github.com/gatsbyjs/gatsby/commit/677819353c8358219e0530ce88e6ce17d492761f))
+
+## [3.4.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.4.0/packages/gatsby-codemods) (2021-12-14)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.4)
+
+#### Bug Fixes
+
+- update dependency graphql to ^15.7.2 for gatsby-codemods [#33386](https://github.com/gatsbyjs/gatsby/issues/33386) ([0bfc91d](https://github.com/gatsbyjs/gatsby/commit/0bfc91da010ff5d25ab67ac822366dc422b4aded))
+
+## [3.3.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.3.0/packages/gatsby-codemods) (2021-12-01)
+
+[🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.3)
+
+**Note:** Version bump only for package gatsby-codemods
+
 ## [3.2.0](https://github.com/gatsbyjs/gatsby/commits/gatsby-codemods@3.2.0/packages/gatsby-codemods) (2021-11-16)
 
 [🧾 Release notes](https://www.gatsbyjs.com/docs/reference/release-notes/v4.2)

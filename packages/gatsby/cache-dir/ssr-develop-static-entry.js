@@ -1,7 +1,7 @@
 /* global BROWSER_ESM_ONLY */
 import React from "react"
-import fs from "fs"
-import { renderToString, renderToStaticMarkup } from "react-dom/server"
+import fs from "fs-extra"
+import { renderToStaticMarkup, renderToPipeableStream } from "react-dom/server"
 import { get, merge, isObject, flatten, uniqBy, concat } from "lodash"
 import nodePath from "path"
 import { apiRunner, apiRunnerAsync } from "./api-runner-ssr"
@@ -9,12 +9,20 @@ import { grabMatchParams } from "./find-path"
 import syncRequires from "$virtual/ssr-sync-requires"
 
 import { RouteAnnouncerProps } from "./route-announcer-props"
-import { ServerLocation, Router, isRedirect } from "@reach/router"
+import { ServerLocation, Router, isRedirect } from "@gatsbyjs/reach-router"
+import { headHandlerForSSR } from "./head/head-export-handler-for-ssr"
+import { getStaticQueryResults } from "./loader"
+import { WritableAsPromise } from "./server-utils/writable-as-promise"
+import {
+  SlicesResultsContext,
+  SlicesContext,
+  SlicesMapContext,
+  SlicesPropsContext,
+} from "./slice/context"
 
-// import testRequireError from "./test-require-error"
-// For some extremely mysterious reason, webpack adds the above module *after*
-// this module so that when this code runs, testRequireError is undefined.
-// So in the meantime, we'll just inline it.
+// prefer default export if available
+const preferDefault = m => (m && m.default) || m
+
 const testRequireError = (moduleName, err) => {
   const regex = new RegExp(`Error: Cannot find module\\s.${moduleName}`)
   const firstLine = err.toString().split(`\n`)[0]
@@ -48,13 +56,13 @@ try {
 
 Html = Html && Html.__esModule ? Html.default : Html
 
-export default async function staticPage(
+export default async function staticPage({
   pagePath,
   isClientOnlyPage,
   publicDir,
   error,
-  callback
-) {
+  serverData,
+}) {
   let bodyHtml = ``
   let headComponents = [
     <meta key="environment" name="note" content="environment=development" />,
@@ -157,7 +165,9 @@ export default async function staticPage(
 
     const pageData = getPageData(pagePath)
 
-    const { componentChunkName } = pageData
+    const { componentChunkName, slicesMap } = pageData
+
+    const pageComponent = await syncRequires.ssrComponents[componentChunkName]
 
     let scriptsAndStyles = flatten(
       [`commons`].map(chunkKey => {
@@ -225,26 +235,17 @@ export default async function staticPage(
         const props = {
           ...this.props,
           ...pageData.result,
+          serverData,
           params: {
             ...grabMatchParams(this.props.location.pathname),
             ...(pageData.result?.pageContext?.__params || {}),
           },
         }
 
-        let pageElement
-        if (
-          syncRequires.ssrComponents[componentChunkName] &&
-          !isClientOnlyPage
-        ) {
-          pageElement = React.createElement(
-            syncRequires.ssrComponents[componentChunkName],
-            props
-          )
-        } else {
-          // If this is a client-only page or the pageComponent didn't finish
-          // compiling yet, just render an empty component.
-          pageElement = () => null
-        }
+        const pageElement = React.createElement(
+          preferDefault(syncRequires.ssrComponents[componentChunkName]),
+          props
+        )
 
         const wrappedPage = apiRunner(
           `wrapPageElement`,
@@ -259,16 +260,17 @@ export default async function staticPage(
       }
     }
 
-    const routerElement = (
-      <ServerLocation url={`${__BASE_PATH__}${pagePath}`}>
-        <Router id="gatsby-focus-wrapper" baseuri={__BASE_PATH__}>
-          <RouteHandler path="/*" />
-        </Router>
-        <div {...RouteAnnouncerProps} />
-      </ServerLocation>
-    )
+    const routerElement =
+      syncRequires.ssrComponents[componentChunkName] && !isClientOnlyPage ? (
+        <ServerLocation url={`${__BASE_PATH__}${pagePath}`}>
+          <Router id="gatsby-focus-wrapper" baseuri={__BASE_PATH__}>
+            <RouteHandler path="/*" />
+          </Router>
+          <div {...RouteAnnouncerProps} />
+        </ServerLocation>
+      ) : null
 
-    const bodyComponent = apiRunner(
+    let bodyComponent = apiRunner(
       `wrapRootElement`,
       { element: routerElement, pathname: pagePath },
       routerElement,
@@ -276,6 +278,54 @@ export default async function staticPage(
         return { element: result, pathname: pagePath }
       }
     ).pop()
+
+    if (process.env.GATSBY_SLICES) {
+      const readSliceData = sliceName => {
+        const filePath = nodePath.join(
+          publicDir,
+          `slice-data`,
+          `${sliceName}.json`
+        )
+
+        const rawSliceData = fs.readFileSync(filePath, `utf-8`)
+        return JSON.parse(rawSliceData)
+      }
+
+      const slicesContext = {
+        renderEnvironment: `dev-ssr`,
+      }
+      const sliceProps = {}
+      const slicesDb = new Map()
+      const sliceData = {}
+      for (const sliceName of Object.values(slicesMap)) {
+        sliceData[sliceName] = await readSliceData(sliceName)
+      }
+
+      for (const sliceName of Object.values(slicesMap)) {
+        const slice = sliceData[sliceName]
+        const { default: SliceComponent } = await getPageChunk(slice)
+
+        const sliceObject = {
+          component: SliceComponent,
+          sliceContext: slice.result.sliceContext,
+          data: slice.result.data,
+        }
+
+        slicesDb.set(sliceName, sliceObject)
+      }
+
+      bodyComponent = (
+        <SlicesContext.Provider value={slicesContext}>
+          <SlicesPropsContext.Provider value={sliceProps}>
+            <SlicesMapContext.Provider value={slicesMap}>
+              <SlicesResultsContext.Provider value={slicesDb}>
+                {bodyComponent}
+              </SlicesResultsContext.Provider>
+            </SlicesMapContext.Provider>
+          </SlicesPropsContext.Provider>
+        </SlicesContext.Provider>
+      )
+    }
 
     // Let the site or plugin render the page component.
     await apiRunnerAsync(`replaceRenderer`, {
@@ -294,7 +344,17 @@ export default async function staticPage(
     // If no one stepped up, we'll handle it.
     if (!bodyHtml) {
       try {
-        bodyHtml = renderToString(bodyComponent)
+        const writableStream = new WritableAsPromise()
+        const { pipe } = renderToPipeableStream(bodyComponent, {
+          onAllReady() {
+            pipe(writableStream)
+          },
+          onError(error) {
+            writableStream.destroy(error)
+          },
+        })
+
+        bodyHtml = await writableStream
       } catch (e) {
         // ignore @reach/router redirect errors
         if (!isRedirect(e)) throw e
@@ -309,6 +369,18 @@ export default async function staticPage(
       setPostBodyComponents,
       setBodyProps,
       pathname: pagePath,
+    })
+
+    // we want to run Head after onRenderBody, so Html and Body attributes
+    // from Head wins over global ones from onRenderBody
+    headHandlerForSSR({
+      pageComponent,
+      setHeadComponents,
+      setHtmlAttributes,
+      setBodyAttributes,
+      staticQueryContext: getStaticQueryResults(),
+      pageData,
+      pagePath,
     })
 
     apiRunner(`onPreRenderHTML`, {
@@ -348,5 +420,9 @@ export default async function staticPage(
   let htmlStr = renderToStaticMarkup(htmlElement)
   htmlStr = `<!DOCTYPE html>${htmlStr}`
 
-  callback(null, htmlStr)
+  return htmlStr
+}
+
+export function getPageChunk({ componentChunkName }) {
+  return syncRequires.ssrComponents[componentChunkName]
 }

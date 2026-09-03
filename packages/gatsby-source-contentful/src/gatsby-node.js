@@ -2,12 +2,14 @@
 import _ from "lodash"
 import origFetch from "node-fetch"
 import fetchRetry from "@vercel/fetch-retry"
+import { polyfillImageServiceDevRoutes } from "gatsby-plugin-utils/polyfill-remote-file"
+export { setFieldsOnGraphQLNodeType } from "./extend-node-type"
+import { CODES } from "./report"
 
 import { maskText } from "./plugin-options"
 
 export { createSchemaCustomization } from "./create-schema-customization"
 export { sourceNodes } from "./source-nodes"
-export { setFieldsOnGraphQLNodeType } from "./extend-node-type"
 
 const fetch = fetchRetry(origFetch)
 
@@ -39,6 +41,43 @@ const validateContentfulAccess = async pluginOptions => {
     })
 
   return undefined
+}
+
+export const onPreInit = async (
+  { store, reporter, actions },
+  pluginOptions
+) => {
+  // if gatsby-plugin-image is not installed
+  try {
+    await import(`gatsby-plugin-image/graphql-utils`)
+  } catch (err) {
+    reporter.panic({
+      id: CODES.GatsbyPluginMissing,
+      context: {
+        sourceMessage: `gatsby-plugin-image is missing from your project.\nPlease install "gatsby-plugin-image".`,
+      },
+    })
+  }
+
+  // if gatsby-plugin-image is not configured
+  if (
+    !store
+      .getState()
+      .flattenedPlugins.find(plugin => plugin.name === `gatsby-plugin-image`)
+  ) {
+    reporter.panic({
+      id: CODES.GatsbyPluginMissing,
+      context: {
+        sourceMessage: `gatsby-plugin-image is missing from your gatsby-config file.\nPlease add "gatsby-plugin-image" to your plugins array.`,
+      },
+    })
+  }
+
+  if (typeof actions?.addRemoteFileAllowedUrl === `function`) {
+    actions.addRemoteFileAllowedUrl(
+      `https://images.ctfassets.net/${pluginOptions.spaceId}/*`
+    )
+  }
 }
 
 export const pluginOptionsSchema = ({ Joi }) =>
@@ -80,6 +119,15 @@ For example, to filter locales on only germany \`localeFilter: locale => locale.
 List of locales and their codes can be found in Contentful app -> Settings -> Locales`
         )
         .default(() => () => true),
+      typePrefix: Joi.string()
+        .description(`Prefix for Contentful node types`)
+        .default(`Contentful`),
+      contentTypeFilter: Joi.func()
+        .description(
+          `Possibility to limit how many contentType/nodes are created in GraphQL. This can limit the memory usage by reducing the amount of nodes created. Useful if you have a large space in Contentful and only want to get the data from certain content types.
+For example, to exclude content types starting with "page" \`contentTypeFilter: contentType => !contentType.sys.id.startsWith('page')\``
+        )
+        .default(() => () => true),
       pageLimit: Joi.number()
         .integer()
         .description(
@@ -94,6 +142,7 @@ List of locales and their codes can be found in Contentful app -> Settings -> Lo
         .default(50),
       proxy: Joi.object()
         .keys({
+          protocol: Joi.string(),
           host: Joi.string().required(),
           port: Joi.number().required(),
           auth: Joi.object().keys({
@@ -131,3 +180,8 @@ List of locales and their codes can be found in Contentful app -> Settings -> Lo
       plugins: Joi.array(),
     })
     .external(validateContentfulAccess)
+
+/** @type {import('gatsby').GatsbyNode["onCreateDevServer"]} */
+export const onCreateDevServer = ({ app, store }) => {
+  polyfillImageServiceDevRoutes(app, store)
+}

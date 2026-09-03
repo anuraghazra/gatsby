@@ -1,5 +1,6 @@
+import { b64e } from "~/utils/string-encoding"
+import { withPluginKey } from "~/store"
 const fs = require(`fs-extra`)
-import btoa from "btoa"
 const { remoteFileDownloaderBarPromise } = require(`./progress-bar-promise`)
 const got = require(`got`)
 const { createContentDigest } = require(`gatsby-core-utils`)
@@ -15,7 +16,7 @@ const {
   getRemoteFileName,
   createFilePath,
 } = require(`gatsby-source-filesystem/utils`)
-const cacheId = url => `create-remote-file-node-${url}`
+const cacheId = url => withPluginKey(`create-remote-file-node-${url}`)
 
 let bar
 // Keep track of the total number of jobs we push in the queue
@@ -263,7 +264,7 @@ async function processRemoteNode({
   // extensible. We should define a proper API that we validate.
   const httpOpts = {}
   if (auth?.htaccess_pass && auth?.htaccess_user) {
-    headers[`Authorization`] = `Basic ${btoa(
+    headers[`Authorization`] = `Basic ${b64e(
       `${auth.htaccess_user}:${auth.htaccess_pass}`
     )}`
   }

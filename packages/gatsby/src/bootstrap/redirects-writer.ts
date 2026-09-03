@@ -1,10 +1,9 @@
 import _ from "lodash"
-import crypto from "crypto"
 import fs from "fs-extra"
+import { joinPath, md5 } from "gatsby-core-utils"
+import reporter from "gatsby-cli/lib/reporter"
 import { store, emitter } from "../redux"
 import { IRedirect } from "../redux/types"
-import { joinPath } from "gatsby-core-utils"
-import reporter from "gatsby-cli/lib/reporter"
 
 let lastHash: string | null = null
 let bootstrapFinished = false
@@ -19,7 +18,7 @@ export const writeRedirects = async (): Promise<void> => {
 
   for (const redirect of redirects) {
     const alternativePath = redirect.fromPath.endsWith(`/`)
-      ? redirect.fromPath.substr(0, redirect.fromPath.length - 1)
+      ? redirect.fromPath.slice(0, -1)
       : redirect.fromPath + `/`
 
     let hasSamePage: boolean
@@ -47,16 +46,13 @@ export const writeRedirects = async (): Promise<void> => {
 
   if (redirectMatchingPageWarnings.length > 0) {
     reporter.warn(
-      `There are routes that match both page and redirect. Pages take precendence over redirects so the redirect will not work:\n${redirectMatchingPageWarnings.join(
+      `There are routes that match both page and redirect. Pages take precedence over redirects so the redirect will not work:\n${redirectMatchingPageWarnings.join(
         `\n`
       )}`
     )
   }
 
-  const newHash = crypto
-    .createHash(`md5`)
-    .update(JSON.stringify(browserRedirects))
-    .digest(`hex`)
+  const newHash = await md5(JSON.stringify(browserRedirects))
 
   if (newHash === lastHash) {
     return

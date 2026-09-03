@@ -3,13 +3,6 @@ import resolveCwd from "resolve-cwd"
 import yargs from "yargs"
 import envinfo from "envinfo"
 import { sync as existsSync } from "fs-exists-cached"
-import clipboardy from "clipboardy"
-import {
-  trackCli,
-  setDefaultTags,
-  setTelemetryEnabled,
-  isTrackingEnabled,
-} from "gatsby-telemetry"
 import { run as runCreateGatsby } from "create-gatsby"
 import report from "./reporter"
 import { setStore } from "./reporter/redux"
@@ -111,7 +104,8 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
     handler?: (
       args: yargs.Arguments,
       cmd: (args: yargs.Arguments) => void
-    ) => void
+    ) => void,
+    nodeEnv?: string | undefined
   ): (argv: yargs.Arguments) => void {
     return (argv: yargs.Arguments): void => {
       report.setVerbose(!!argv.verbose)
@@ -123,6 +117,12 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
 
       process.env.gatsby_executing_command = command
       report.verbose(`set gatsby_executing_command: "${command}"`)
+
+      // This is to make sure that the NODE_ENV is set before resolveLocalCommand is called
+      // This way, cache-lmdb uses the same DB files in main & workers
+      if (nodeEnv) {
+        process.env.NODE_ENV = nodeEnv
+      }
 
       const localCmd = resolveLocalCommand(command)
       const args = { ...argv, ...siteInfo, report, useYarn, setStore }
@@ -202,13 +202,11 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
       getCommandHandler(
         `develop`,
         (args: yargs.Arguments, cmd: (args: yargs.Arguments) => unknown) => {
-          process.env.NODE_ENV = process.env.NODE_ENV || `development`
-
-          if (args.hasOwnProperty(`inspect`)) {
+          if (Object.prototype.hasOwnProperty.call(args, `inspect`)) {
             args.inspect = args.inspect || 9229
           }
-          if (args.hasOwnProperty(`inspect-brk`)) {
-            args.inspect = args.inspect || 9229
+          if (Object.prototype.hasOwnProperty.call(args, `inspect-brk`)) {
+            args.inspectBrk = args[`inspect-brk`] || 9229
           }
 
           cmd(args)
@@ -216,7 +214,8 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
           // The development server shouldn't ever exit until the user directly
           // kills it so this is fine.
           return new Promise(() => {})
-        }
+        },
+        process.env.NODE_ENV || `development`
       )
     ),
   })
@@ -239,7 +238,9 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
         })
         .option(`profile`, {
           type: `boolean`,
-          default: false,
+          default:
+            process.env.REACT_PROFILE === `true` ||
+            process.env.REACT_PROFILE === `1`,
           describe: `Build site with react profiling (this can add some additional overhead). See https://reactjs.org/docs/profiler`,
         })
         .option(`graphql-tracing`, {
@@ -266,14 +267,21 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
           default: false,
           describe: `Save the log of changed pages for future comparison.`,
           hidden: true,
+        })
+        .option(`functions-platform`, {
+          type: `string`,
+          describe: `The platform bundled functions will execute on. Defaults to current platform or settings provided by used adapter.`,
+        })
+        .option(`functions-arch`, {
+          type: `string`,
+          describe: `The architecture bundled functions will execute on. Defaults to current architecture or settings provided by used adapter.`,
         }),
     handler: handlerP(
       getCommandHandler(
         `build`,
-        (args: yargs.Arguments, cmd: (args: yargs.Arguments) => void) => {
-          process.env.NODE_ENV = `production`
-          return cmd(args)
-        }
+        (args: yargs.Arguments, cmd: (args: yargs.Arguments) => void) =>
+          cmd(args),
+        `production`
       )
     ),
   })
@@ -311,7 +319,12 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
           describe: `Tracer configuration file (OpenTracing compatible). See https://gatsby.dev/tracing`,
         }),
 
-    handler: getCommandHandler(`serve`),
+    handler: getCommandHandler(
+      `serve`,
+      (args: yargs.Arguments, cmd: (args: yargs.Arguments) => void) =>
+        cmd(args),
+      process.env.NODE_ENV || `production`
+    ),
   })
 
   cli.command({
@@ -345,7 +358,10 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
             console.log(envinfoOutput)
 
             if (copyToClipboard) {
-              clipboardy.writeSync(envinfoOutput)
+              // tinyclip is ESM-only package
+              import(`tinyclip`).then(({ writeText }) => {
+                writeText(envinfoOutput)
+              })
             }
           })
       } catch (err) {
@@ -379,53 +395,21 @@ function buildLocalCommands(cli: yargs.Argv, isLocalSite: boolean): void {
     describe: `Get a node repl with context of Gatsby environment, see (https://www.gatsbyjs.com/docs/gatsby-repl/)`,
     handler: getCommandHandler(
       `repl`,
-      (args: yargs.Arguments, cmd: (args: yargs.Arguments) => void) => {
-        process.env.NODE_ENV = process.env.NODE_ENV || `development`
-        return cmd(args)
-      }
+      (args: yargs.Arguments, cmd: (args: yargs.Arguments) => void) =>
+        cmd(args),
+      process.env.NODE_ENV || `development`
     ),
-  })
-
-  cli.command({
-    command: `recipes [recipe]`,
-    describe: `[EXPERIMENTAL] Run a recipe`,
-    builder: _ =>
-      _.option(`D`, {
-        alias: `develop`,
-        type: `boolean`,
-        default: false,
-        describe: `Start recipe in develop mode to live-develop your recipe (defaults to false)`,
-      }).option(`I`, {
-        alias: `install`,
-        type: `boolean`,
-        default: false,
-        describe: `Install recipe (defaults to plan mode)`,
-      }),
-    handler: handlerP(async ({ recipe, develop, install }: yargs.Arguments) => {
-      const { recipesHandler } = require(`./recipes`)
-      await recipesHandler(
-        siteInfo.directory,
-        recipe as string,
-        develop as boolean,
-        install as boolean
-      )
-    }),
   })
 
   cli.command({
     command: `plugin <cmd> [plugins...]`,
     describe: `Useful commands relating to Gatsby plugins`,
     builder: yargs =>
-      yargs
-        .positional(`cmd`, {
-          choices: [`docs`, `ls`],
-          describe: "Valid commands include `docs`, `ls`.",
-          type: `string`,
-        })
-        .positional(`plugins`, {
-          describe: `The plugin names`,
-          type: `string`,
-        }),
+      yargs.positional(`cmd`, {
+        choices: [`docs`, `ls`],
+        describe: "Valid commands include `docs`, `ls`.",
+        type: `string`,
+      }),
     handler: async ({
       cmd,
     }: yargs.Arguments<{
@@ -532,18 +516,14 @@ export const createCli = (argv: Array<string>): yargs.Arguments => {
   buildLocalCommands(cli, isLocalSite)
 
   try {
-    const { version } = require(`../package.json`)
     cli.version(
       `version`,
       `Show the version of the Gatsby CLI and the Gatsby package in the current project`,
       getVersionInfo()
     )
-    setDefaultTags({ gatsbyCliVersion: version })
   } catch (e) {
     // ignore
   }
-
-  trackCli(argv)
 
   return cli
     .command({
@@ -575,10 +555,8 @@ export const createCli = (argv: Array<string>): yargs.Arguments => {
             description: `Disable telemetry`,
           }),
 
-      handler: handlerP(({ enable, disable }: yargs.Arguments) => {
-        const enabled = Boolean(enable) || !disable
-        setTelemetryEnabled(enabled)
-        report.log(`Telemetry collection ${enabled ? `enabled` : `disabled`}`)
+      handler: handlerP(() => {
+        report.log(`Telemetry is no longer gathered and is always disabled`)
       }),
     })
     .command({
@@ -604,7 +582,6 @@ export const createCli = (argv: Array<string>): yargs.Arguments => {
 
       handler: handlerP(({ cmd, key, value }: yargs.Arguments) => {
         if (!getPackageManager()) {
-          trackCli(`SET_DEFAULT_PACKAGE_MANAGER`, { name: `npm` })
           setPackageManager(`npm`)
         }
 
@@ -617,10 +594,9 @@ export const createCli = (argv: Array<string>): yargs.Arguments => {
             if (value) {
               // @ts-ignore
               setPackageManager(value)
-              trackCli(`SET_PACKAGE_MANAGER`, { name: `${value}` })
+
               return
             } else {
-              trackCli(`SET_PACKAGE_MANAGER`, { name: `npm` })
               setPackageManager(`npm`)
             }
           } else {
@@ -633,7 +609,6 @@ export const createCli = (argv: Array<string>): yargs.Arguments => {
 
         console.log(`
         Package Manager: ${getPackageManager()}
-        Telemetry enabled: ${isTrackingEnabled()}
         `)
       }),
     })

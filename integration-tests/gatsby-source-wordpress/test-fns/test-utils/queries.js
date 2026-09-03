@@ -32,7 +32,7 @@ exports.queries = {
         totalCount
       }
       allWpMediaItem(
-        sort: { fields: [id] }
+        sort: { id: ASC }
         # this node "cG9zdDoxOTU=" only exists on warm builds. So our snapshot is wrong if we don't filter it out.
         filter: { id: { ne: "cG9zdDoxOTU=" } }
       ) {
@@ -61,12 +61,16 @@ exports.queries = {
           dateTimePickerField
           fieldGroupName
           fileField {
-            id
-            title
+            node {
+              id
+              title
+            }
           }
           galleryField {
-            id
-            title
+            nodes {
+              id
+              title
+            }
           }
           googleMapField {
             city
@@ -87,8 +91,10 @@ exports.queries = {
             fieldGroupName
           }
           imageField {
-            id
-            title
+            node {
+              id
+              title
+            }
           }
           oembedField
           radioButtonField
@@ -102,74 +108,79 @@ exports.queries = {
           timePicker
           trueFalseField
           userField {
-            id
-            name
-          }
-
-          relationshipField {
-            ... on WpPost {
+            nodes {
               id
-              title
+              name
             }
-            ... on WpPage {
-              id
-              title
+          }
+          relationshipField {
+            nodes {
+              ... on WpPost {
+                id
+                title
+              }
+              ... on WpPage {
+                id
+                title
+              }
             }
           }
           postObjectField {
-            ... on WpPost {
-              id
-              title
-            }
-            ... on WpPage {
-              id
-              title
+            nodes {
+              ... on WpPost {
+                id
+                title
+              }
+              ... on WpPage {
+                id
+                title
+              }
             }
           }
           pageLinkField {
-            ... on WpPage {
-              id
-              title
-            }
-            ... on WpPost {
-              id
-              title
-            }
-          }
-
-          flexibleContentField {
-            ... on WpPage_Acfpagefields_FlexibleContentField_FlexLayout1 {
-              fieldGroupName
-              flexImage {
+            nodes {
+              ... on WpPage {
+                id
                 title
               }
-              flexRelationship {
-                ... on WpPost {
+              ... on WpPost {
+                id
+                title
+              }
+            }
+          }
+          flexibleContentField {
+            ... on WpAcfPageFieldsFlexibleContentFieldFlexLayout1Layout {
+              fieldGroupName
+              flexImage {
+                node {
                   title
+                }
+              }
+              flexRelationship {
+                nodes {
+                  ... on WpPost {
+                    title
+                  }
                 }
               }
               flexRepeater {
                 fieldGroupName
-                # https://github.com/wp-graphql/wp-graphql-acf/issues/165
-                # flexRepeaterRelationship {
-                #   ... on WpPost {
-                #     id
-                #     title
-                #   }
-                # }
                 flexRepeaterTitle
               }
             }
           }
           repeaterField {
             repeaterFlex {
-              ... on WpPage_Acfpagefields_repeaterField_RepeaterFlex_RepeaterFlexTitleLayout {
+              ... on WpAcfPageFieldsRepeaterFieldRepeaterFlexRepeaterFlexTitleLayoutLayout {
                 repeaterFlexTitle
               }
-              ... on WpPage_Acfpagefields_repeaterField_RepeaterFlex_RepeaterFlexRelationshipLayout {
+              ... on WpAcfPageFieldsRepeaterFieldRepeaterFlexRepeaterFlexRelationshipLayoutLayout {
                 repeaterFlexRelationship {
-                  ... on WpPage {
-                    title
+                  nodes {
+                    ... on WpPage {
+                      title
+                    }
                   }
                 }
               }
@@ -180,66 +191,40 @@ exports.queries = {
     }
   `,
   gutenbergColumns: /* GraphQL */ `
-    fragment WpCoreColumnBlock on WpCoreColumnBlock {
+    fragment WpCoreColumnBlock on WpCoreColumn {
       name
       isDynamic
-      order
-      originalContent
-      # @todo this connection isn't working
-      # parentNode {
-      #   id
-      #   ... on WpPost {
-      #     title
-      #   }
-      # }
-      parentNodeDatabaseId
-      dynamicContent
       attributes {
-        ... on WpCoreColumnBlockAttributes {
-          className
-          verticalAlignment
-          width
-        }
+        className
+        verticalAlignment
+        width
       }
     }
 
-    fragment WpCoreColumnsBlock on WpCoreColumnsBlock {
+    fragment WpCoreColumnsBlock on WpCoreColumns {
       name
-      order
-      originalContent
-      # @todo this connection isn't working
-      # parentNode {
-      #   id
-      #   ... on WpPost {
-      #     title
-      #   }
-      # }
-      parentNodeDatabaseId
-      dynamicContent
       attributes {
-        ... on WpCoreColumnsBlockAttributes {
-          align
-          backgroundColor
-          className
-          textColor
-          verticalAlignment
-        }
+        align
+        backgroundColor
+        className
+        textColor
+        verticalAlignment
       }
     }
 
-    fragment InnerBlocks on WpBlock {
-      ... on WpCoreColumnBlock {
+    fragment InnerBlocks on WpEditorBlock {
+      ... on WpCoreColumn {
         ...WpCoreColumnBlock
       }
-      ... on WpCoreColumnsBlock {
+      ... on WpCoreColumns {
         ...WpCoreColumnsBlock
       }
     }
 
     query POST_QUERY {
       wpPost(title: { eq: "Gutenberg: Columns" }) {
-        blocks {
-          ... on WpCoreColumnsBlock {
+        editorBlocks {
+          ... on WpCoreColumns {
             ...WpCoreColumnsBlock
           }
           innerBlocks {
@@ -259,44 +244,25 @@ exports.queries = {
     {
       wpPost(id: { eq: "cG9zdDoxMjU=" }) {
         title
-        blocks {
+        editorBlocks {
           name
-          ... on WpCoreButtonBlock {
+          ... on WpCoreButton {
             attributes {
-              ... on WpCoreButtonBlockAttributes {
-                align
-                backgroundColor
-                borderRadius
-                className
-                gradient
-                linkTarget
-                placeholder
-                rel
-                text
-                textColor
-                title
-                url
-              }
+              align
+              backgroundColor
+              className
+              gradient
+              linkTarget
+              placeholder
+              rel
+              text
+              textColor
+              title
+              url
             }
           }
-          ... on WpCoreFileBlock {
+          ... on WpCoreSeparator {
             attributes {
-              downloadButtonText
-              fileName
-              id
-              showDownloadButton
-              textLinkTarget
-            }
-          }
-          ... on WpCoreSpacerBlock {
-            attributes {
-              height
-            }
-          }
-          ... on WpCoreSeparatorBlock {
-            attributes {
-              color
-              customColor
               className
             }
           }
@@ -308,57 +274,53 @@ exports.queries = {
     {
       wpPost(id: { eq: "cG9zdDoxMjI=" }) {
         title
-        blocks {
+        editorBlocks {
           name
-          ... on WpCoreCodeBlock {
-            originalContent
+          ... on WpCoreCode {
+            renderedHtml
             attributes {
               content
             }
           }
-          ... on WpCoreFreeformBlock {
+          ... on WpCoreFreeform {
             attributes {
               content
             }
           }
-          ... on WpCoreHtmlBlock {
+          ... on WpCoreHtml {
             attributes {
               content
             }
           }
-          ... on WpCorePullquoteBlock {
+          ... on WpCorePullquote {
             attributes {
-              ... on WpCorePullquoteBlockAttributes {
-                citation
-                value
+              citation
+              value
+            }
+          }
+          ... on WpCoreTable {
+            attributes {
+              body {
+                cells {
+                  content
+                  scope
+                  tag
+                }
               }
-            }
-          }
-          ... on WpCoreTableBlock {
-            attributes {
-              ... on WpCoreTableBlockAttributes {
-                body {
-                  cells {
-                    content
-                    scope
-                    tag
-                  }
+              caption
+              foot {
+                cells {
+                  content
+                  scope
+                  tag
                 }
-                caption
-                foot {
-                  cells {
-                    content
-                    scope
-                    tag
-                  }
-                }
-                hasFixedLayout
-                head {
-                  cells {
-                    content
-                    scope
-                    tag
-                  }
+              }
+              hasFixedLayout
+              head {
+                cells {
+                  content
+                  scope
+                  tag
                 }
               }
             }
@@ -370,48 +332,30 @@ exports.queries = {
   gutenbergCommonBlocks: /* GraphQL */ `
     {
       wpPost(id: { eq: "cG9zdDo5NA==" }) {
-        blocks {
+        editorBlocks {
           name
-          ... on WpCoreParagraphBlock {
+          ... on WpCoreParagraph {
             attributes {
-              ... on WpCoreParagraphBlockAttributes {
-                content
-              }
+              content
             }
           }
-
-          ... on WpCoreHeadingBlock {
+          ... on WpCoreHeading {
             attributes {
-              ... on WpCoreHeadingBlockAttributes {
-                content
-                level
-              }
+              content
+              level
             }
           }
-
-          ... on WpCoreImageBlock {
+          ... on WpCoreImage {
             attributes {
-              ... on WpCoreImageBlockAttributes {
+              url
+            }
+          }
+          ... on WpCoreGallery {
+            attributes {
+              images {
+                id
                 url
               }
-            }
-          }
-
-          ... on WpCoreGalleryBlock {
-            attributes {
-              ... on WpCoreGalleryBlockAttributes {
-                images {
-                  id
-                  url
-                }
-              }
-            }
-          }
-
-          ... on WpCoreListBlock {
-            attributes {
-              ordered
-              values
             }
           }
         }
@@ -536,10 +480,6 @@ exports.queries = {
       opengraphType
       title
       twitterDescription
-      twitterImage {
-        id
-        title
-      }
       twitterTitle
     }
   `,
@@ -556,7 +496,6 @@ exports.queries = {
               id
               label
               databaseId
-              nodeType
               target
               title
               url
@@ -597,7 +536,7 @@ exports.queries = {
       testPage: wpPage(id: { eq: "cG9zdDoy" }) {
         title
       }
-      allWpPage(sort: { fields: date }) {
+      allWpPage(sort: { date: ASC }) {
         nodes {
           uri
           title
@@ -629,7 +568,7 @@ exports.queries = {
       testPost: wpPost(id: { eq: "cG9zdDox" }) {
         title
       }
-      allWpPost(sort: { fields: date }) {
+      allWpPost(sort: { date: ASC }) {
         nodes {
           title
           featuredImage {
@@ -696,7 +635,6 @@ exports.queries = {
           writingSettingsDefaultPostFormat
           writingSettingsUseSmilies
         }
-        nodeType
         writingSettings {
           defaultCategory
           defaultPostFormat

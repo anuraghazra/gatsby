@@ -508,8 +508,7 @@ export default function Routes() {
 }
 ```
 
-Here's a more complex example of migrating a `<PrivateRoute>` component (used
-in store.gatsbyjs.org) from React Router to @reach/router.
+Here's a more complex example of migrating a `<PrivateRoute>` component from React Router to @reach/router.
 
 ```diff
  import * as React from 'react';
@@ -549,7 +548,6 @@ in store.gatsbyjs.org) from React Router to @reach/router.
 
 Here are links to diffs for three sites with client routes upgraded to @reach/router:
 
-- [store.gatsbyjs.org](https://github.com/gatsbyjs/store.gatsbyjs.org/pull/111)
 - [client-only-routes](https://github.com/gatsbyjs/gatsby/pull/6918/files#diff-69757e54875e28ef83eb8efe45a33fdf)
 - [simple-auth](https://github.com/gatsbyjs/gatsby/pull/6918/files#diff-53ac112a4b2ec760b26a86c953df2339)
 
@@ -875,9 +873,9 @@ export const pageQuery = graphql`
     foo: file(relativePath: { regex: "/foo.jpg/" }) {
       childImageSharp {
 -        sizes(maxWidth: 700) {
--          ...GatsbyImageSharpSizes_tracedSVG
+-          ...GatsbyImageSharpSizes
 +        fluid(maxWidth: 700) {
-+          ...GatsbyImageSharpFluid_tracedSVG
++          ...GatsbyImageSharpFluid
         }
       }
     }
@@ -1042,7 +1040,7 @@ Here's a brief section on starting a new project with Gatsby v2 instead of upgra
 
 _Start from scratch:_ If you're a _start from scratch_ kind of person, you can install Gatsby and React like this: `npm install gatsby react react-dom`
 
-_Tutorial:_ If you'd like a step-by-step guide, [follow the tutorial](/docs/tutorial/) to get started with Gatsby v2.
+_Tutorial:_ If you'd like a step-by-step guide, [follow the tutorial](/docs/tutorial/getting-started/) to get started with Gatsby v2.
 
 _Starters:_ If you'd rather use one of the official starters, install your favorite one with the Gatsby CLI.
 

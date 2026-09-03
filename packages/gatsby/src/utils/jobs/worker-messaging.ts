@@ -11,11 +11,18 @@ import { internalActions } from "../../redux/actions"
 import { GatsbyWorkerPool } from "../worker/types"
 import { isWorker, getMessenger } from "../worker/messaging"
 
+let hasActiveWorkerJobs: pDefer.DeferredPromise<void> | null = null
+let activeWorkerJobs = 0
+
 export function initJobsMessagingInMainProcess(
   workerPool: GatsbyWorkerPool
 ): void {
   workerPool.onMessage((msg, workerId) => {
     if (msg.type === MESSAGE_TYPES.JOB_CREATED) {
+      if (activeWorkerJobs === 0) {
+        hasActiveWorkerJobs = pDefer<void>()
+      }
+      activeWorkerJobs++
       store
         .dispatch(internalActions.createJobV2FromInternalJob(msg.payload))
         .then(result => {
@@ -37,14 +44,24 @@ export function initJobsMessagingInMainProcess(
               payload: {
                 id: msg.payload.id,
                 error: error.message,
+                stack: error.stack,
               },
             },
             workerId
           )
         })
+        .finally(() => {
+          if (--activeWorkerJobs === 0) {
+            hasActiveWorkerJobs?.resolve()
+            hasActiveWorkerJobs = null
+          }
+        })
     }
   })
 }
+
+export const waitUntilWorkerJobsAreComplete = (): Promise<void> =>
+  hasActiveWorkerJobs ? hasActiveWorkerJobs.promise : Promise.resolve()
 
 /**
  * This map is ONLY used in worker. It's purpose is to keep track of promises returned to plugins
@@ -72,7 +89,7 @@ export function initJobsMessagingInWorker(): void {
         deferredPromise.resolve(result)
         deferredWorkerPromises.delete(id)
       } else if (msg.type === MESSAGE_TYPES.JOB_FAILED) {
-        const { id, error } = msg.payload
+        const { id, error, stack } = msg.payload
         const deferredPromise = deferredWorkerPromises.get(id)
 
         if (!deferredPromise) {
@@ -81,7 +98,11 @@ export function initJobsMessagingInWorker(): void {
           )
         }
 
-        deferredPromise.reject(new WorkerError(error))
+        const errorObject = new WorkerError(error)
+        if (stack) {
+          errorObject.stack = stack
+        }
+        deferredPromise.reject(errorObject)
         deferredWorkerPromises.delete(id)
       }
     })

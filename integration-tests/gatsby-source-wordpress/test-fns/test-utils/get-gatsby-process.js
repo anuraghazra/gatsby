@@ -4,7 +4,7 @@ const rimraf = require("rimraf")
 
 const gatsbyBin = path.join(`node_modules`, `gatsby`, `cli.js`)
 
-exports.gatsbyCleanBeforeAll = async done => {
+exports.gatsbyCleanBeforeAll = async () => {
   const gatsbySiteDir = path.join(__dirname, `..`, `..`)
 
   const publicDir = path.join(gatsbySiteDir, `public`)
@@ -15,18 +15,18 @@ exports.gatsbyCleanBeforeAll = async done => {
 
   const wordpressDir = path.join(gatsbySiteDir, `WordPress`)
   await new Promise(resolve => rimraf(wordpressDir, resolve))
-
-  if (typeof done === `function`) {
-    done()
-  }
 }
 
 exports.spawnGatsbyProcess = (command = `develop`, env = {}) => {
   const proc = spawn(
     process.execPath,
-    [gatsbyBin, command, ...(command === `develop` ? ["-H", "localhost", "--port", "8000"] : [])],
+    [
+      gatsbyBin,
+      command,
+      ...(command === `develop` ? ["-H", "localhost", "--port", "8000"] : []),
+    ],
     {
-      stdio: [`inherit`, `inherit`, `inherit`],
+      stdio: `inherit`,
       env: {
         ...process.env,
         NODE_ENV: command === `develop` ? `development` : `production`,
@@ -35,7 +35,7 @@ exports.spawnGatsbyProcess = (command = `develop`, env = {}) => {
     }
   )
 
-  process.on('SIGINT', proc.kill)
+  process.on("SIGINT", proc.kill)
 
   return proc
 }

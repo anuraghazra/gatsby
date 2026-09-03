@@ -6,24 +6,10 @@ const {
   _lazyJobsEnabled,
 } = require(`./index`)
 const { pathExists } = require(`fs-extra`)
-const { slash } = require(`gatsby-core-utils`)
+const { slash } = require(`gatsby-core-utils/path`)
 
 const { setPluginOptions } = require(`./plugin-options`)
 const path = require(`path`)
-
-let coreSupportsOnPluginInit
-try {
-  const { isGatsbyNodeLifecycleSupported } = require(`gatsby-plugin-utils`)
-  if (_CFLAGS_.GATSBY_MAJOR === `4`) {
-    coreSupportsOnPluginInit = isGatsbyNodeLifecycleSupported(`onPluginInit`)
-  } else {
-    coreSupportsOnPluginInit = isGatsbyNodeLifecycleSupported(
-      `unstable_onPluginInit`
-    )
-  }
-} catch (e) {
-  coreSupportsOnPluginInit = false
-}
 
 function removeCachedValue(cache, key) {
   if (cache?.del) {
@@ -47,16 +33,17 @@ exports.onCreateDevServer = async ({ app, cache, reporter }) => {
     const decodedURI = decodeURIComponent(req.path)
     const pathOnDisk = path.resolve(path.join(`./public/`, decodedURI))
 
-    if (await pathExists(pathOnDisk)) {
-      return res.sendFile(pathOnDisk)
-    }
-
     const jobContentDigest = await cache.get(decodedURI)
     const cacheResult = jobContentDigest
       ? await cache.get(jobContentDigest)
       : null
 
     if (!cacheResult) {
+      // this handler is meant to handle lazy images only (images that were registered for
+      // processing, but deffered to be processed only on request in develop server).
+      // If we don't have cache result - it means that this is not lazy image or that
+      // image was already handled in which case `express.static` handler (that is earlier
+      // than this handler) should take care of handling request.
       return next()
     }
 
@@ -78,6 +65,9 @@ exports.onCreateDevServer = async ({ app, cache, reporter }) => {
       await removeCachedValue(cache, jobContentDigest)
     }
 
+    // we reach this point only when this is a lazy image that we just processed
+    // because `express.static` is earlier handler, we do have to manually serve
+    // produced file for current request
     return res.sendFile(pathOnDisk)
   })
 }
@@ -129,19 +119,10 @@ exports.onPostBootstrap = async ({ reporter, cache, store }) => {
   }
 }
 
-if (coreSupportsOnPluginInit) {
-  // to properly initialize plugin in worker (`onPreBootstrap` won't run in workers)
-  if (_CFLAGS_.GATSBY_MAJOR === `4`) {
-    exports.onPluginInit = async ({ actions }, pluginOptions) => {
-      setActions(actions)
-      setPluginOptions(pluginOptions)
-    }
-  } else {
-    exports.unstable_onPluginInit = async ({ actions }, pluginOptions) => {
-      setActions(actions)
-      setPluginOptions(pluginOptions)
-    }
-  }
+// to properly initialize plugin in worker (`onPreBootstrap` won't run in workers)
+exports.onPluginInit = async ({ actions }, pluginOptions) => {
+  setActions(actions)
+  setPluginOptions(pluginOptions)
 }
 
 exports.onPreBootstrap = async ({ actions, emitter, cache }, pluginOptions) => {
@@ -231,7 +212,12 @@ exports.pluginOptionsSchema = ({ Joi }) =>
     ),
     stripMetadata: Joi.boolean().default(true),
     defaultQuality: Joi.number().default(50),
+    // TODO(v6): Remove deprecated failOnError option
     failOnError: Joi.boolean().default(true),
+    failOn: Joi.any()
+      .valid(`none`, `truncated`, `error`, `warning`)
+      .default(`warning`)
+      .description(`Level of sensitivity to invalid images`),
     defaults: Joi.object({
       formats: Joi.array().items(
         Joi.string().valid(`auto`, `png`, `jpg`, `webp`, `avif`)
@@ -255,4 +241,24 @@ exports.pluginOptionsSchema = ({ Joi }) =>
     }).description(
       `Default options used by gatsby-plugin-image. \nSee https://gatsbyjs.com/docs/reference/built-in-components/gatsby-plugin-image/`
     ),
+  }).custom(value => {
+    const shouldNotFailOnError = !value.failOnError
+
+    if (shouldNotFailOnError) {
+      // show this warning only once in main process
+      if (!process.env.GATSBY_WORKER_ID) {
+        console.warn(
+          `[gatsby-plugin-sharp]: The "failOnError" option is deprecated. Please use "failOn" instead.`
+        )
+      }
+
+      return {
+        ...value,
+        failOn: `none`,
+      }
+    }
+
+    return {
+      ...value,
+    }
   })

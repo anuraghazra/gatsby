@@ -1,7 +1,8 @@
 import * as React from "react"
-import { Link } from "gatsby"
+import { Link, Slice } from "gatsby"
 
 import Layout from "../components/layout"
+import Seo from "../components/seo"
 
 const NotFoundPage = () => (
   <Layout>
@@ -11,7 +12,10 @@ const NotFoundPage = () => (
     <Link to="/" data-testid="index">
       Go to Index
     </Link>
+    <Slice alias="mappedslice" />
   </Layout>
 )
+
+export const Head = () => <Seo />
 
 export default NotFoundPage

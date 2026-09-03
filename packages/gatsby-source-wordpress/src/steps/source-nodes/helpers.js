@@ -1,13 +1,15 @@
-import store from "~/store"
+import { getStore } from "~/store"
+import { camelCase } from "lodash"
+import { findNamedTypeName } from "../create-schema-customization/helpers"
 
 export const getTypeInfoBySingleName = singleName => {
-  const { typeMap } = store.getState().remoteSchema
+  const { typeMap } = getStore().getState().remoteSchema
 
   const rootField = typeMap
     .get(`RootQuery`)
     .fields.find(field => field.name === singleName)
 
-  const typeName = rootField.type.name || rootField.type.ofType.name
+  const typeName = rootField.type.name || findNamedTypeName(rootField.type)
 
   const type = typeMap.get(typeName)
 
@@ -15,17 +17,18 @@ export const getTypeInfoBySingleName = singleName => {
 }
 
 export const getQueryInfoBySingleFieldName = singleName => {
-  const { nodeQueries } = store.getState().remoteSchema
-
+  const { nodeQueries } = getStore().getState().remoteSchema
   const queryInfo = Object.values(nodeQueries).find(
-    q => q.typeInfo.singularName === singleName
+    q =>
+      q.typeInfo.singularName === singleName ||
+      q.typeInfo.singularName === camelCase(singleName)
   )
 
   return queryInfo
 }
 
 export const getQueryInfoByTypeName = typeName => {
-  const { nodeQueries } = store.getState().remoteSchema
+  const { nodeQueries } = getStore().getState().remoteSchema
 
   const queryInfo = Object.values(nodeQueries).find(
     q => q.typeInfo.nodesTypeName === typeName

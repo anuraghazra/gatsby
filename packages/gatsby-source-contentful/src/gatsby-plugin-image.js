@@ -1,6 +1,6 @@
 // @ts-check
 import fs from "fs-extra"
-import { fetchRemoteFile } from "gatsby-core-utils"
+import { fetchRemoteFile } from "gatsby-core-utils/fetch-remote-file"
 import path from "path"
 import {
   createUrl,
@@ -17,7 +17,7 @@ const inFlightBase64Cache = new Map()
 const resolvedBase64Cache = new Map()
 
 // Note: this may return a Promise<body>, body (sync), or null
-export const getBase64Image = (imageProps, cache) => {
+const getBase64Image = (imageProps, cache) => {
   if (!imageProps) {
     return null
   }
@@ -35,7 +35,7 @@ export const getBase64Image = (imageProps, cache) => {
     ...imageProps.options,
     toFormat,
     width: 20,
-    height: Math.floor(20 * aspectRatio),
+    height: Math.floor(20 / aspectRatio),
   }
 
   const requestUrl = createUrl(imageProps.baseUrl, imageOptions)
@@ -61,8 +61,9 @@ export const getBase64Image = (imageProps, cache) => {
 
     const absolutePath = await fetchRemoteFile({
       url: requestUrl,
-      cache,
+      directory: cache.directory,
       ext: extension,
+      cacheKey: imageProps.image.internal.contentDigest,
     })
 
     const base64 = (await fs.readFile(absolutePath)).toString(`base64`)
@@ -97,8 +98,9 @@ const getTracedSVG = async ({ image, options, cache }) => {
   const absolutePath = await fetchRemoteFile({
     url,
     name,
-    cache,
+    directory: cache.directory,
     ext: extension,
+    cacheKey: image.internal.contentDigest,
   })
 
   return traceSVG({
@@ -108,7 +110,7 @@ const getTracedSVG = async ({ image, options, cache }) => {
       extension,
       absolutePath,
     },
-    args: { toFormat: `` },
+    args: { toFormat: ``, ...options.tracedSVGOptions },
     fileArgs: options,
   })
 }
@@ -147,8 +149,9 @@ const getDominantColor = async ({ image, options, cache }) => {
     const absolutePath = await fetchRemoteFile({
       url,
       name,
-      cache,
+      directory: cache.directory,
       ext: extension,
+      cacheKey: image.internal.contentDigest,
     })
 
     if (!(`getDominantColor` in pluginSharp)) {
@@ -196,6 +199,19 @@ export function generateImageSource(
   _fit, // We use resizingBehavior instead
   imageTransformOptions
 ) {
+  const imageFormatDefaults = imageTransformOptions[`${toFormat}Options`]
+
+  if (
+    imageFormatDefaults &&
+    Object.keys(imageFormatDefaults).length !== 0 &&
+    imageFormatDefaults.constructor === Object
+  ) {
+    imageTransformOptions = {
+      ...imageTransformOptions,
+      ...imageFormatDefaults,
+    }
+  }
+
   const {
     jpegProgressive,
     quality,
@@ -236,6 +252,7 @@ export function generateImageSource(
   return { width, height, format: toFormat, src }
 }
 
+let didShowTraceSVGRemovalWarning = false
 export async function resolveGatsbyImageData(
   image,
   options,
@@ -246,6 +263,39 @@ export async function resolveGatsbyImageData(
   if (!isImage(image)) return null
 
   const { generateImageData } = await import(`gatsby-plugin-image`)
+
+  const { getPluginOptions, doMergeDefaults } = await import(
+    `gatsby-plugin-sharp/plugin-options`
+  )
+
+  const sharpOptions = getPluginOptions()
+
+  const userDefaults = sharpOptions.defaults
+
+  const defaults = {
+    tracedSVGOptions: {},
+    blurredOptions: {},
+    jpgOptions: {},
+    pngOptions: {},
+    webpOptions: {},
+    gifOptions: {},
+    avifOptions: {},
+    quality: 50,
+    placeholder: `dominantColor`,
+    ...userDefaults,
+  }
+
+  options = doMergeDefaults(options, defaults)
+
+  if (options.placeholder === `tracedSVG`) {
+    if (!didShowTraceSVGRemovalWarning) {
+      console.warn(
+        `"TRACED_SVG" placeholder argument value is no longer supported (used in ContentfulAsset.gatsbyImageData processing), falling back to "DOMINANT_COLOR". See https://gatsby.dev/tracesvg-removal/`
+      )
+      didShowTraceSVGRemovalWarning = true
+    }
+    options.placeholder = `dominantColor`
+  }
 
   const { baseUrl, contentType, width, height } = getBasicImageProps(
     image,
@@ -297,11 +347,7 @@ export async function resolveGatsbyImageData(
   }
 
   if (options.placeholder === `tracedSVG`) {
-    placeholderDataURI = await getTracedSVG({
-      image,
-      options,
-      cache,
-    })
+    console.error(`this shouldn't happen`)
   }
 
   if (placeholderDataURI) {

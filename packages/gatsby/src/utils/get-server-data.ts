@@ -1,7 +1,6 @@
 import type { Request } from "express"
 import type { IGatsbyPage } from "../redux/types"
-
-import { match } from "@gatsbyjs/reach-router/lib/utils"
+import { match } from "@gatsbyjs/reach-router"
 
 export interface IServerData {
   headers?: Record<string, string>
@@ -24,7 +23,7 @@ export async function getServerData(
   req:
     | Partial<Pick<Request, "query" | "method" | "url" | "headers">>
     | undefined,
-  page: IGatsbyPage,
+  page: Pick<IGatsbyPage, "path" | "matchPath" | "context">,
   pagePath: string,
   mod: IModuleWithServerData | undefined
 ): Promise<IServerData> {

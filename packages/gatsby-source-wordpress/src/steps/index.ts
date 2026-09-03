@@ -8,7 +8,6 @@ export { setImageNodeIdCache } from "~/steps/set-image-node-id-cache"
 export { startPollingForContentUpdates } from "~/steps/source-nodes/update-nodes/content-update-interval"
 export { checkIfSchemaHasChanged } from "~/steps/ingest-remote-schema/diff-schemas"
 export { setErrorMap } from "~/steps/set-error-map"
-export { tempPreventMultipleInstances } from "~/steps/temp-prevent-multiple-instances"
 
 export { onPreExtractQueriesInvokeLeftoverPreviewCallbacks } from "./preview/cleanup"
 
@@ -19,3 +18,12 @@ export {
 
 export { pluginOptionsSchema } from "~/steps/declare-plugin-options-schema"
 export { logPostBuildWarnings } from "~/steps/log-post-build-warnings"
+export { imageRoutes } from "~/steps/image-routes"
+
+export { setRequestHeaders } from "./set-request-headers"
+export { addRemoteFileAllowedUrl } from "./add-remote-file-allowed-url"
+
+export {
+  hideAuthPluginOptions,
+  restoreAuthPluginOptions,
+} from "./auth-handling"

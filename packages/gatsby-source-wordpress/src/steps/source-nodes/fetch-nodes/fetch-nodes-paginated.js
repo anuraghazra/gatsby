@@ -1,5 +1,5 @@
 import fetchGraphql from "~/utils/fetch-graphql"
-import store from "~/store"
+import { getStore } from "~/store"
 import { formatLogMessage } from "../../../utils/format-log-message"
 
 export const normalizeNode = ({ node, nodeTypeName }) => {
@@ -121,7 +121,7 @@ const paginatedWpNodeFetch = async ({
           if (node?.databaseId && node?.uri && existingNode?.uri) {
             helpers.reporter.info(
               formatLogMessage(
-                `#${node.databaseId} (${node.uri}) is a duplicate of ${existingNode.databaseId} (${existingNode.uri})`
+                `Node with ID ${node.databaseId}/${node.id} of type ${node.__typename} was fetched multiple times. This is a WPGraphQL bug where pagination returns duplicate nodes.`
               )
             )
           }
@@ -136,7 +136,7 @@ const paginatedWpNodeFetch = async ({
 
     // MediaItem type is incremented in createMediaItemNode
     if (nodeTypeName !== `MediaItem`) {
-      store.dispatch.logger.incrementActivityTimer({
+      getStore().dispatch.logger.incrementActivityTimer({
         typeName: nodeTypeName,
         by: nodes.length,
       })

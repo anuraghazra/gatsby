@@ -9,7 +9,8 @@ const verdaccioConfig = {
     enable: true,
     title: `gatsby-dev`,
   },
-  logs: [{ type: `stdout`, format: `pretty-timestamped`, level: `warn` }],
+  self_path: `./`,
+  logs: { type: `stdout`, format: `pretty-timestamped`, level: `warn` },
   packages: {
     "**": {
       access: `$all`,

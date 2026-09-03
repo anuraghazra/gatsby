@@ -3,8 +3,14 @@ import { fetchAndRunWpActions } from "./wp-actions"
 import { formatLogMessage } from "~/utils/format-log-message"
 import { getGatsbyApi } from "~/utils/get-gatsby-api"
 import { getPersistentCache } from "~/utils/cache"
+import { needToTouchNodes } from "../../../utils/gatsby-features"
+import { withPluginKey } from "~/store"
 
 export const touchValidNodes = async () => {
+  if (!needToTouchNodes) {
+    return
+  }
+
   const { helpers } = getGatsbyApi()
   const { actions } = helpers
 
@@ -37,7 +43,7 @@ const fetchAndApplyNodeUpdates = async ({
   activity.start()
 
   if (!since) {
-    since = await cache.get(LAST_COMPLETED_SOURCE_TIME)
+    since = await cache.get(withPluginKey(LAST_COMPLETED_SOURCE_TIME))
   }
 
   // Check with WPGQL to create, delete, or update cached WP nodes

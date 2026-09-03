@@ -43,6 +43,30 @@ function isApiExport(node: ExportNamedDeclaration, name: string): boolean {
     }
   }
 
+  if (name === `Head`) {
+    // Head can be re-exported, Head can be class components - so the checks above are not sufficient,
+    // we need to be more permisive here
+
+    // class component
+    if (
+      node.declaration?.type === `ClassDeclaration` &&
+      node.declaration?.id?.type === `Identifier` &&
+      node.declaration?.id?.name === name
+    ) {
+      return true
+    }
+
+    // re-exports
+    if (
+      node.source &&
+      node.specifiers.some(
+        specifier => (specifier.exported as Identifier).name === name
+      )
+    ) {
+      return true
+    }
+  }
+
   return false
 }
 
@@ -53,15 +77,15 @@ function hasOneValidNamedDeclaration(
   // Checks for:
   // const query = graphql``
   // export { query }
-  if (
-    node.type === `ExportNamedDeclaration` &&
-    node.declaration === null &&
-    varName
-  ) {
+  if (node.type === `ExportNamedDeclaration` && node.declaration === null) {
     // For export { foobar, query } the declaration will be null and specifiers exists
     // For { foobar, query } it'll return true, for { query } it'll return false
-    const nonQueryExports = node.specifiers.some(
-      e => e.exported.name !== varName
+    // It will ignore any { default } declarations since these are allowed
+    const nonQueryExports = node.specifiers.some(e =>
+      varName
+        ? (e.exported as Identifier).name !== varName &&
+          (e.exported as Identifier).name !== `default`
+        : (e.exported as Identifier).name !== `default`
     )
     return !nonQueryExports
   }
@@ -113,7 +137,7 @@ const limitedExports: Rule.RuleModule = {
   meta: {
     type: `problem`,
     messages: {
-      limitedExportsPageTemplates: `In page templates only a default export of a valid React component and the named exports of a page query, getServerData or config are allowed.
+      limitedExportsPageTemplates: `In page templates only a default export of a valid React component and the named exports of a page query, getServerData, Head or config are allowed.
         All other named exports will cause Fast Refresh to not preserve local component state and do a full refresh.
 
         Please move your other named exports to another file. Also make sure that you only export page queries that use the "graphql" tag from "gatsby".
@@ -183,7 +207,9 @@ const limitedExports: Rule.RuleModule = {
             // Not import graphql from "gatsby"
             if (el.type === `ImportSpecifier`) {
               // Only get the specifier with the original name of "graphql"
-              return el.imported.name === DEFAULT_GRAPHQL_TAG_NAME
+              return (
+                (el.imported as Identifier).name === DEFAULT_GRAPHQL_TAG_NAME
+              )
             }
             // import * as Gatsby from "gatsby"
             if (el.type === `ImportNamespaceSpecifier`) {
@@ -230,6 +256,10 @@ const limitedExports: Rule.RuleModule = {
         }
 
         if (isApiExport(node, `config`)) {
+          return undefined
+        }
+
+        if (isApiExport(node, `Head`)) {
           return undefined
         }
 

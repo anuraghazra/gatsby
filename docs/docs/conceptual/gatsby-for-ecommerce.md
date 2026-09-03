@@ -2,8 +2,6 @@
 title: Using Gatsby For E-commerce
 ---
 
-import { Announcement } from "gatsby-interface"
-
 Businesses selling products online typically need a variety of software to support their experience. At a minimum, their website needs product pages, product catalog navigation, a shopping cart, and checkout.
 
 Most have additional functionality like customer account creation, promotions, discounts, and loyalty, customer reviews, tax calculation, user tracking via analytics, and content personalization.
@@ -37,12 +35,12 @@ E-commerce tends to have a number of specific requirements. When building a Gats
 - **Persisting a cart across site pages and between sessions** (ie, if the user closes their browser and reopens it tomorrow, the items should still be there). This can be handled either through local-storage or through the shopify-buy JS library.
 - **Product search** can be done client-side if the SKU count is small enough to store all products in a global state. Alternatively, it can be handled through the e-commerce provider’s search features, or if those aren’t robust enough, a third-party search provider like Algolia.
 - **Surfacing price adjustments** like tax, shipping, discounts/promos to the user while browsing the site. Different e-commerce solutions provide different levels of API access to these objects.
-- **Handling checkout.** In order to comply with PCI regulations around storing credit card information, e-commerce providers typically exert strong control over the "buy" or "checkout" experience. Shopify requires all checkout flows using their platform to use their hosted checkout pages, though it's common to wrap them in a subdomain of the main site (e.g. the Gatsby/Shopify site [strivectin.com](strivectin.com) wraps a `myshopify.com` URL under a `shop.strivectin.com` URL for checkout).
+- **Handling checkout.** In order to comply with PCI regulations around storing credit card information, e-commerce providers typically exert strong control over the "buy" or "checkout" experience. Shopify requires all checkout flows using their platform to use their hosted checkout pages, though it's common to wrap them in a subdomain of the main site (e.g. the Gatsby/Shopify site [strivectin.com](https://www.strivectin.com/) wraps a `myshopify.com` URL under a `shop.strivectin.com` URL for checkout).
 - **Handling account pages.** Again, many sites choose to wrap their e-commerce provider’s account pages under their own domain.
 
 ## Additional resources:
 
-<Announcement style={{ marginBottom: "1.5rem" }}>
+<Announcement>
 
 Check out our [e-commerce demo](https://shopify-demo.gatsbyjs.com/) built with our Shopify Starter, a proof of concept showcasing 10,000 products and 30,000 SKUs (variants).
 Clone our Shopify Starter, host it on Gatsby and connect it to your own Shopify data to develop your own proof of concept in as little as an hour.

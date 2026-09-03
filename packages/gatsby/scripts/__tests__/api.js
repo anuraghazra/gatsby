@@ -12,6 +12,7 @@ it("generates the expected api output", done => {
       Object {
         "browser": Object {
           "disableCorePrefetching": Object {},
+          "onCaughtError": Object {},
           "onClientEntry": Object {},
           "onInitialClientRender": Object {},
           "onPostPrefetchPathname": Object {},
@@ -24,12 +25,21 @@ it("generates the expected api output", done => {
           "onServiceWorkerRedundant": Object {},
           "onServiceWorkerUpdateFound": Object {},
           "onServiceWorkerUpdateReady": Object {},
+          "onUncaughtError": Object {},
           "registerServiceWorker": Object {},
           "replaceHydrateFunction": Object {},
           "shouldUpdateScroll": Object {},
           "wrapPageElement": Object {},
           "wrapRootElement": Object {},
         },
+        "features": Array [
+          "image-cdn",
+          "graphql-typegen",
+          "content-file-path",
+          "slices",
+          "stateful-source-nodes",
+          "adapters",
+        ],
         "node": Object {
           "createPages": Object {},
           "createPagesStatefully": Object {},
@@ -59,10 +69,10 @@ it("generates the expected api output", done => {
           "preprocessSource": Object {},
           "resolvableExtensions": Object {},
           "setFieldsOnGraphQLNodeType": Object {},
-          "sourceNodes": Object {},
-          "unstable_shouldOnCreateNode": Object {
-            "version": "2.24.80",
+          "shouldOnCreateNode": Object {
+            "version": "5.0.0",
           },
+          "sourceNodes": Object {},
         },
         "ssr": Object {
           "onPreRenderHTML": Object {},

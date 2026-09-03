@@ -77,13 +77,15 @@ describe(`report.error`, () => {
     reporter.error({
       id: `95312`,
       context: {
-        ref: `navigator`,
+        undefinedGlobal: `navigator`,
       },
     })
     const generatedError = getErrorMessages(
       reporterActions.createLog as jest.Mock
     )[0]
-    expect(generatedError).toMatchSnapshot()
+    expect(generatedError).toMatchSnapshot({
+      stack: expect.any(Array),
+    })
   })
 
   it(`handles "String" signature correctly`, () => {
@@ -91,7 +93,9 @@ describe(`report.error`, () => {
     const generatedError = getErrorMessages(
       reporterActions.createLog as jest.Mock
     )[0]
-    expect(generatedError).toMatchSnapshot()
+    expect(generatedError).toMatchSnapshot({
+      stack: expect.any(Array),
+    })
   })
 
   it(`handles "String, Error, pluginName" signature correctly`, () => {
@@ -103,7 +107,9 @@ describe(`report.error`, () => {
     const generatedError = getErrorMessages(
       reporterActions.createLog as jest.Mock
     )[0]
-    expect(generatedError).toMatchSnapshot()
+    expect(generatedError).toMatchSnapshot({
+      stack: expect.any(Array),
+    })
   })
 
   it(`sets an error map if setErrorMap is called`, () => {
@@ -111,7 +117,7 @@ describe(`report.error`, () => {
       "1337": {
         text: (context): string => `Error text is ${context.someProp}`,
         level: Level.ERROR,
-        docsUrl: `https://www.gatsbyjs.org/docs/gatsby-cli/#new`,
+        docsUrl: `https://www.gatsbyjs.com/docs/gatsby-cli/#new`,
       },
     })
 
@@ -123,7 +129,7 @@ describe(`report.error`, () => {
       "1337": {
         text: (context): string => `Error text is ${context.someProp}`,
         level: Level.ERROR,
-        docsUrl: `https://www.gatsbyjs.org/docs/gatsby-cli/#new`,
+        docsUrl: `https://www.gatsbyjs.com/docs/gatsby-cli/#new`,
       },
     })
 
@@ -136,7 +142,9 @@ describe(`report.error`, () => {
     const generatedError = getErrorMessages(
       reporterActions.createLog as jest.Mock
     )[0]
-    expect(generatedError).toMatchSnapshot()
+    expect(generatedError).toMatchSnapshot({
+      stack: expect.any(Array),
+    })
   })
 
   // This is how it's potentially called from api-runner-node.js
@@ -146,7 +154,7 @@ describe(`report.error`, () => {
       "gatsby-plugin-foo-bar_1337": {
         text: (context): string => `Error text is ${context.someProp}`,
         level: Level.ERROR,
-        docsUrl: `https://www.gatsbyjs.org/docs/gatsby-cli/#new`,
+        docsUrl: `https://www.gatsbyjs.com/docs/gatsby-cli/#new`,
       },
     })
 
@@ -163,6 +171,8 @@ describe(`report.error`, () => {
     const generatedError = getErrorMessages(
       reporterActions.createLog as jest.Mock
     )[0]
-    expect(generatedError).toMatchSnapshot()
+    expect(generatedError).toMatchSnapshot({
+      stack: expect.any(Array),
+    })
   })
 })

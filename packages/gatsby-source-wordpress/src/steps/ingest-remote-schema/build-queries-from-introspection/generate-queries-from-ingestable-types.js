@@ -9,12 +9,11 @@ import {
   generateReusableFragments,
 } from "./build-query-on-field-name"
 
-import clipboardy from "clipboardy"
-
-import store from "~/store"
+import { getStore } from "~/store"
 import { getTypeSettingsByType } from "~/steps/create-schema-customization/helpers"
 import prettier from "prettier"
 import { formatLogMessage } from "~/utils/format-log-message"
+import { findNamedTypeName } from "../../create-schema-customization/helpers"
 
 const recursivelyAliasFragments = field =>
   field.inlineFragments.map(fragment => {
@@ -125,7 +124,7 @@ const generateNodeQueriesFromIngestibleFields = async () => {
         },
       },
     },
-  } = store.getState()
+  } = getStore().getState()
 
   const {
     fieldBlacklist,
@@ -150,7 +149,15 @@ const generateNodeQueriesFromIngestibleFields = async () => {
     const nodesField = fieldFields.find(nodeListFilter)
 
     // the type of this query
-    const nodesType = typeMap.get(nodesField.type.ofType.name)
+    const nodesType = typeMap.get(findNamedTypeName(nodesField.type))
+
+    if (!nodesType) {
+      reporter.panic(
+        formatLogMessage(
+          `Couldn't infer node type in the remote schema from the ${name} root field.`
+        )
+      )
+    }
 
     const { fields, possibleTypes } = nodesType
 
@@ -269,7 +276,7 @@ const generateNodeQueriesFromIngestibleFields = async () => {
         singleFieldName,
         singleNodeRootFieldInfo,
         settings,
-        store,
+        store: getStore(),
         fieldVariables,
         remoteSchema,
         transformedFields,
@@ -308,6 +315,8 @@ const generateNodeQueriesFromIngestibleFields = async () => {
             `Query debug mode. Writing node list query for the ${nodesType.name} node type to the system clipboard and exiting\n\n`
           )
         )
+        // clipboardy is ESM-only package
+        const { default: clipboardy } = await import(`clipboardy`)
         await clipboardy.write(
           prettier.format(nodeListQueries[0], { parser: `graphql` })
         )

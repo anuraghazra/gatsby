@@ -3,13 +3,12 @@ import { execSync } from "child_process"
 import execa from "execa"
 import { sync as existsSync } from "fs-exists-cached"
 import fs from "fs-extra"
-import { trackCli, trackError } from "gatsby-telemetry"
 import hostedGitInfo from "hosted-git-info"
 import isValid from "is-valid-path"
 import sysPath from "path"
 import prompts from "prompts"
 import url from "url"
-import { updateSiteMetadata } from "gatsby-core-utils"
+import { updateInternalSiteMetadata } from "gatsby-core-utils"
 import report from "./reporter"
 import { getPackageManager, setPackageManager } from "./util/package-manager"
 import reporter from "./reporter"
@@ -25,6 +24,7 @@ const spawn = (
   cmd: string,
   options?: execa.Options
 ): execa.ExecaChildProcess => {
+  // Split on spaces, tabs, new lines
   const [file, ...args] = cmd.split(/\s+/)
   return spawnWithArgs(file, args, options)
 }
@@ -115,7 +115,9 @@ const install = async (rootPath: string): Promise<void> => {
       await spawn(`yarnpkg`)
     } else {
       await fs.remove(`yarn.lock`)
-      await spawn(`npm install`)
+      await spawn(
+        `npm install --loglevel error --color always --legacy-peer-deps --no-audit`
+      )
     }
   } finally {
     process.chdir(prevDir)
@@ -287,8 +289,6 @@ export async function initStarter(
     return
   }
   if (urlObject.protocol && urlObject.host) {
-    trackError(`NEW_PROJECT_NAME_MISSING`)
-
     const isStarterAUrl =
       starter && !url.parse(starter).hostname && !url.parse(starter).protocol
 
@@ -322,7 +322,6 @@ export async function initStarter(
   }
 
   if (existsSync(sysPath.join(rootPath, `package.json`))) {
-    trackError(`NEW_PROJECT_IS_NPM_PROJECT`)
     report.panic({
       id: `11613`,
       context: {
@@ -334,9 +333,6 @@ export async function initStarter(
 
   const hostedInfo = hostedGitInfo.fromUrl(starterPath)
 
-  trackCli(`NEW_PROJECT`, {
-    starterName: hostedInfo ? hostedInfo.shortcut() : `local:starter`,
-  })
   if (hostedInfo) {
     await clone(hostedInfo, rootPath)
   } else {
@@ -353,7 +349,7 @@ export async function initStarter(
       )
     })
 
-  await updateSiteMetadata(
+  await updateInternalSiteMetadata(
     {
       name: sitePackageJson?.name || rootPath,
       sitePath,
@@ -363,5 +359,4 @@ export async function initStarter(
   )
 
   successMessage(rootPath)
-  trackCli(`NEW_PROJECT_END`)
 }

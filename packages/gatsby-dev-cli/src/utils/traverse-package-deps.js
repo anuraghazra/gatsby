@@ -9,7 +9,6 @@ const path = require(`path`)
  * ```
  * {
  *   "gatsby-cli": Set(["gatsby"]),
- *   "gatsby-telemetry": Set(["gatsby", "gatsby-cli"]),
  *   "gatsby-source-filesystem": Set(["gatsby-source-contentful", "gatsby-source-drupal", "gatsby-source-wordpress", etc])
  *   // no package have remark plugin in dependencies - so dependent list is empty
  *   "gatsby-transformer-remark": Set([])
@@ -34,18 +33,26 @@ const path = require(`path`)
  * @return {TraversePackagesDepsReturn}
  */
 const traversePackagesDeps = ({
-  root,
   packages,
   monoRepoPackages,
   seenPackages = [...packages],
   depTree = {},
+  packageNameToPath,
 }) => {
   packages.forEach(p => {
     let pkgJson
     try {
-      pkgJson = require(path.join(root, `packages`, p, `package.json`))
-    } catch {
-      console.error(`"${p}" package doesn't exist in monorepo.`)
+      const packageRoot = packageNameToPath.get(p)
+      if (packageRoot) {
+        pkgJson = require(path.join(packageRoot, `package.json`))
+      } else {
+        console.error(`"${p}" package doesn't exist in monorepo.`)
+        // remove from seenPackages
+        seenPackages = seenPackages.filter(seenPkg => seenPkg !== p)
+        return
+      }
+    } catch (e) {
+      console.error(`"${p}" package doesn't exist in monorepo.`, e)
       // remove from seenPackages
       seenPackages = seenPackages.filter(seenPkg => seenPkg !== p)
       return
@@ -69,11 +76,11 @@ const traversePackagesDeps = ({
       })
 
       traversePackagesDeps({
-        root,
         packages: fromMonoRepo,
         monoRepoPackages,
         seenPackages,
         depTree,
+        packageNameToPath,
       })
     }
   })

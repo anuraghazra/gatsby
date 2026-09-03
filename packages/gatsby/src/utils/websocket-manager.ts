@@ -6,14 +6,12 @@ import { clearDirtyQueriesListToEmitViaWebsocket } from "../redux/actions/intern
 import { Server as HTTPSServer } from "https"
 import { Server as HTTPServer } from "http"
 import { IPageDataWithQueryResult } from "../utils/page-data"
-import telemetry from "gatsby-telemetry"
 import url from "url"
-import { createHash } from "crypto"
 import { findPageByPath } from "./find-page-by-path"
 import { Server as SocketIO, Socket } from "socket.io"
 import { getPageMode } from "./page-mode"
 
-export interface IPageQueryResult {
+export interface IPageOrSliceQueryResult {
   id: string
   result?: IPageDataWithQueryResult
 }
@@ -23,12 +21,7 @@ export interface IStaticQueryResult {
   result: unknown // TODO: Improve this once we understand what the type is
 }
 
-type PageResultsMap = Map<string, IPageQueryResult>
 type QueryResultsMap = Map<string, IStaticQueryResult>
-
-function hashPaths(paths: Array<string>): Array<string> {
-  return paths.map(path => createHash(`sha256`).update(path).digest(`hex`))
-}
 
 interface IClientInfo {
   activePath: string | null
@@ -39,7 +32,6 @@ export class WebsocketManager {
   activePaths: Set<string> = new Set()
   clients: Set<IClientInfo> = new Set()
   errors: Map<string, string> = new Map()
-  pageResults: PageResultsMap = new Map()
   staticQueryResults: QueryResultsMap = new Map()
   websocket: SocketIO | undefined
 
@@ -130,7 +122,7 @@ export class WebsocketManager {
       })
     })
 
-    if (process.env.GATSBY_EXPERIMENTAL_QUERY_ON_DEMAND) {
+    if (process.env.GATSBY_QUERY_ON_DEMAND) {
       // page-data marked stale due to dirty query tracking
       const boundEmitStalePageDataPathsFromDirtyQueryTracking =
         this.emitStalePageDataPathsFromDirtyQueryTracking.bind(this)
@@ -168,40 +160,18 @@ export class WebsocketManager {
 
     if (this.websocket) {
       this.websocket.send({ type: `staticQueryResult`, payload: data })
-
-      if (this.clients.size > 0) {
-        telemetry.trackCli(
-          `WEBSOCKET_EMIT_STATIC_PAGE_DATA_UPDATE`,
-          {
-            siteMeasurements: {
-              clientsCount: this.clients.size,
-              paths: hashPaths(Array.from(this.activePaths)),
-            },
-          },
-          { debounce: true }
-        )
-      }
     }
   }
 
-  emitPageData = (data: IPageQueryResult): void => {
-    this.pageResults.set(data.id, data)
-
+  emitPageData = (data: IPageOrSliceQueryResult): void => {
     if (this.websocket) {
       this.websocket.send({ type: `pageQueryResult`, payload: data })
+    }
+  }
 
-      if (this.clients.size > 0) {
-        telemetry.trackCli(
-          `WEBSOCKET_EMIT_PAGE_DATA_UPDATE`,
-          {
-            siteMeasurements: {
-              clientsCount: this.clients.size,
-              paths: hashPaths(Array.from(this.activePaths)),
-            },
-          },
-          { debounce: true }
-        )
-      }
+  emitSliceData = (data: IPageOrSliceQueryResult): void => {
+    if (this.websocket) {
+      this.websocket.send({ type: `sliceQueryResult`, payload: data })
     }
   }
 

@@ -71,6 +71,34 @@ When you directly visit a page you'll get served the HTML. If you request a page
 
 This all happens automatically and you only need to configure the `defer` key.
 
+## Current limitations
+
+There are some limitations currently that you need to be aware of. We'll do our best to mitigate them in our code, through contributions to upstream dependencies, and updates to our documentation.
+
+### Functions inside `gatsby-config` are not allowed
+
+The `gatsby-config` file is bundled into the DSG engine and for this the file has to be serializable. Functions or callbacks can't be used as they are not serializable.
+
+```js:title=gatsby-config.js
+module.exports = {
+  plugins: [
+    {
+      resolve: `gatsby-plugin-acme`,
+      options: {
+        // ⚠️ Doesn't work
+        optionA: () => `foobar`,
+        // OK
+        optionB: `foobar`
+      }
+    }
+  ]
+}
+```
+
+### DSG engine doesn't support `onCreateWebpackConfig`
+
+If you're modifying Gatsby's webpack configuration through [`onCreateWebpackConfig`](/docs/reference/config-files/gatsby-node/#onCreateWebpackConfig) those changes won't be applied to the DSG engine. The DSG engine is bundling everything it needs to run GraphQL queries, including your `gatsby-node` file with its `createResolvers` or `createSchemaCustomization` APIs. If you import/use files in those APIs that rely on your custom webpack changes (e.g. path aliases) it won't work.
+
 ## Additional Resources
 
 - [How-To Guide: Using Deferred Static Generation](/docs/how-to/rendering-options/using-deferred-static-generation/)

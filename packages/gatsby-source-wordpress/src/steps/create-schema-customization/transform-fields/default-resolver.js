@@ -1,10 +1,11 @@
-import { findTypeName } from "~/steps/create-schema-customization/helpers"
+import { findNamedTypeName } from "~/steps/create-schema-customization/helpers"
 
 import { buildGatsbyNodeObjectResolver } from "~/steps/create-schema-customization/transform-fields/transform-object"
 import { buildTypeName } from "../helpers"
 
 export const buildDefaultResolver = transformerApi => (source, _, context) => {
-  const { fieldName, field, gatsbyNodeTypes } = transformerApi
+  const { fieldName, field, gatsbyNodeTypes, pluginOptions } = transformerApi
+  const prefix = pluginOptions.schema.typePrefix
 
   let finalFieldValue
 
@@ -25,7 +26,7 @@ export const buildDefaultResolver = transformerApi => (source, _, context) => {
     finalFieldValue = aliasedField
   }
 
-  // the findTypeName helpers was written after this resolver
+  // the findNamedTypeName helpers was written after this resolver
   // had been in production for a while.
   // so we don't know if in all cases it will find the right typename
   // for this resolver..
@@ -34,7 +35,7 @@ export const buildDefaultResolver = transformerApi => (source, _, context) => {
   // using many different WPGraphQL extensions
   // then come back and remove the `return aliasedField` line and
   // see if this still resolves everything properly
-  const typeName = findTypeName(field.type)
+  const typeName = findNamedTypeName(field.type)
   const autoAliasedFieldName = `${fieldName}__typename_${typeName}`
 
   const aliasedField2 = source[autoAliasedFieldName]
@@ -49,7 +50,10 @@ export const buildDefaultResolver = transformerApi => (source, _, context) => {
   if (finalFieldValue?.__typename) {
     // in Gatsby V3 this property is used to determine the type of an interface field
     // instead of the resolveType fn. This means we need to prefix it so that gql doesn't throw errors about missing types.
-    finalFieldValue.__typename = buildTypeName(finalFieldValue.__typename)
+    finalFieldValue.__typename = buildTypeName(
+      finalFieldValue.__typename,
+      prefix
+    )
   }
 
   const isANodeConnection =

@@ -49,7 +49,9 @@ const mockClient = {
 
 jest.mock(`contentful`, () => {
   return {
-    createClient: jest.fn(() => mockClient),
+    createClient: jest.fn(() => {
+      return { ...mockClient, withoutLinkResolution: mockClient }
+    }),
   }
 })
 
@@ -424,5 +426,21 @@ describe(`Displays troubleshooting tips and detailed plugin options on contentfu
         environment: `Check if setting is correct`,
       }
     )
+  })
+
+  it(`Properly queries CTF sync API for initial and subsequent data syncs`, async () => {
+    await fetchContent({ pluginConfig, reporter, syncToken: null })
+
+    expect(mockClient.sync).toHaveBeenCalledWith({
+      initial: true,
+      limit: 1000,
+    })
+    mockClient.sync.mockClear()
+
+    await fetchContent({ pluginConfig, reporter, syncToken: `mocked` })
+
+    expect(mockClient.sync).toHaveBeenCalledWith({
+      nextSyncToken: `mocked`,
+    })
   })
 })

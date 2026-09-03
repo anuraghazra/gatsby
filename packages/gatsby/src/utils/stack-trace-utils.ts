@@ -1,11 +1,13 @@
 import stackTrace, { StackFrame } from "stack-trace"
+import url from "url"
 import { codeFrameColumns } from "@babel/code-frame"
 import {
-  NullableMappedPosition,
-  SourceMapConsumer,
-  RawSourceMap,
-  RawIndexMap,
-} from "source-map"
+  TraceMap,
+  originalPositionFor,
+  OriginalMapping,
+  SourceMapInput,
+  sourceContentFor,
+} from "@jridgewell/trace-mapping"
 
 const fs = require(`fs-extra`)
 const path = require(`path`)
@@ -50,8 +52,18 @@ interface ICodeFrame {
 
 export const getNonGatsbyCodeFrame = ({
   highlightCode = true,
+  stack,
+}: {
+  highlightCode?: boolean
+  stack?: string
 } = {}): null | ICodeFrame => {
-  const callSite = getNonGatsbyCallSite()
+  let callSite
+  if (stack) {
+    callSite = stackTrace.parse({ stack, name: ``, message: `` })[0]
+  } else {
+    callSite = getNonGatsbyCallSite()
+  }
+
   if (!callSite) {
     return null
   }
@@ -60,31 +72,45 @@ export const getNonGatsbyCodeFrame = ({
   const line = callSite.getLineNumber()
   const column = callSite.getColumnNumber()
 
-  const code = fs.readFileSync(fileName, { encoding: `utf-8` })
-  return {
-    fileName,
-    line,
-    column,
-    codeFrame: codeFrameColumns(
-      code,
-      {
-        start: {
-          line,
-          column,
+  const normalizedFileName = fileName.startsWith(`file://`)
+    ? url.fileURLToPath(fileName)
+    : fileName
+
+  try {
+    const code = fs.readFileSync(normalizedFileName, { encoding: `utf-8` })
+    return {
+      fileName,
+      line,
+      column,
+      codeFrame: codeFrameColumns(
+        code,
+        {
+          start: {
+            line,
+            column,
+          },
         },
-      },
-      {
-        highlightCode,
-      }
-    ),
+        {
+          highlightCode,
+        }
+      ),
+    }
+  } catch (e) {
+    console.error(`Errored getting code frame: ${e.stack}`)
+    return null
   }
 }
 
-export const getNonGatsbyCodeFrameFormatted = ({ highlightCode = true } = {}):
-  | null
-  | string => {
+export const getNonGatsbyCodeFrameFormatted = ({
+  highlightCode = true,
+  stack,
+}: {
+  highlightCode?: boolean
+  stack?: string
+} = {}): null | string => {
   const possibleCodeFrame = getNonGatsbyCodeFrame({
     highlightCode,
+    stack,
   })
 
   if (!possibleCodeFrame) {
@@ -96,33 +122,31 @@ export const getNonGatsbyCodeFrameFormatted = ({ highlightCode = true } = {}):
 }
 
 interface IOriginalSourcePositionAndContent {
-  sourcePosition: NullableMappedPosition | null
+  sourcePosition: OriginalMapping | null
   sourceContent: string | null
 }
 
-export async function findOriginalSourcePositionAndContent(
-  webpackSource: RawSourceMap | RawIndexMap | string,
+export function findOriginalSourcePositionAndContent(
+  webpackSource: SourceMapInput | string,
   position: { line: number; column: number | null }
-): Promise<IOriginalSourcePositionAndContent> {
-  return await SourceMapConsumer.with(webpackSource, null, consumer => {
-    const sourcePosition = consumer.originalPositionFor({
-      line: position.line,
-      column: position.column ?? 0,
-    })
-
-    if (!sourcePosition.source) {
-      return {
-        sourcePosition: null,
-        sourceContent: null,
-      }
-    }
-
-    const sourceContent: string | null =
-      consumer.sourceContentFor(sourcePosition.source, true) ?? null
-
-    return {
-      sourcePosition,
-      sourceContent,
-    }
+): IOriginalSourcePositionAndContent {
+  const tracer = new TraceMap(webpackSource)
+  const sourcePosition = originalPositionFor(tracer, {
+    line: position.line,
+    column: position.column ?? 0,
   })
+
+  if (!sourcePosition.source) {
+    return {
+      sourcePosition: null,
+      sourceContent: null,
+    }
+  }
+
+  const sourceContent = sourceContentFor(tracer, sourcePosition.source)
+
+  return {
+    sourcePosition,
+    sourceContent,
+  }
 }

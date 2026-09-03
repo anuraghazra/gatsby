@@ -1,61 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { findTypeName } from "~/steps/create-schema-customization/helpers"
+import { createModel } from "@rematch/core"
+import { findNamedTypeName } from "~/steps/create-schema-customization/helpers"
+import { IRootModel } from "."
 
-interface IRemoteSchemaState {
-  wpUrl: string
-  nodeQueries: any
-  nonNodeQuery: string
-  introspectionData: any
-  schemaWasChanged: boolean
-  typeMap: any
-  nodeListFilter: (field: { name: string }) => boolean
-  ingestibles: {
-    nodeListRootFields: any
-    nodeInterfaceTypes: any
-    nonNodeRootFields: Array<any>
-  }
-  allowRefreshSchemaUpdate: boolean
-  fetchedTypes: any
-  fieldBlacklist: Array<string>
-  fieldAliases: {
-    parent: string
-    children: string
-    internal: string
-    plugin: string
-    actionOptions: string
-    fields: string
-  }
-}
-
-interface IRemoteSchemaReducers {
-  toggleAllowRefreshSchemaUpdate: (
-    state: IRemoteSchemaState
-  ) => IRemoteSchemaState
-
-  setSchemaWasChanged: (
-    state: IRemoteSchemaState,
-    payload: boolean
-  ) => IRemoteSchemaState
-
-  addFieldsToBlackList: (
-    state: IRemoteSchemaState,
-    payload: Array<string>
-  ) => IRemoteSchemaState
-
-  setState: (
-    state: IRemoteSchemaState,
-    payload: IRemoteSchemaState
-  ) => IRemoteSchemaState
-
-  addFetchedType: (state: IRemoteSchemaState, type: any) => IRemoteSchemaState
-}
-
-interface IRemoteSchemaStore {
-  state: IRemoteSchemaState
-  reducers: IRemoteSchemaReducers
-}
-
-const remoteSchema: IRemoteSchemaStore = {
+const remoteSchema = createModel<IRootModel>()({
   state: {
     wpUrl: null,
     nodeQueries: {},
@@ -90,6 +38,7 @@ const remoteSchema: IRemoteSchemaStore = {
       `previewRevisionDatabaseId`,
       `previewRevisionId`,
       `editingLockedBy`,
+      `cursor`,
     ],
     // @todo make this a plugin option
     fieldAliases: {
@@ -130,7 +79,7 @@ const remoteSchema: IRemoteSchemaStore = {
     },
 
     addFetchedType(state, type) {
-      const key = findTypeName(type)
+      const key = findNamedTypeName(type)
 
       if (!key) {
         return state
@@ -148,7 +97,10 @@ const remoteSchema: IRemoteSchemaStore = {
 
       return state
     },
-  } as IRemoteSchemaReducers,
-}
+  },
+  effects: () => {
+    return {}
+  },
+})
 
 export default remoteSchema

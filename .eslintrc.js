@@ -38,6 +38,7 @@ module.exports = {
     __ASSET_PREFIX__: true,
     _CFLAGS_: true,
     __GATSBY: true,
+    __TRAILING_SLASH__: true,
   },
   rules: {
     "@babel/no-unused-expressions": [
@@ -185,14 +186,11 @@ module.exports = {
           },
           {
             selector: `property`,
-            format: [`PascalCase`, `UPPER_CASE`, `camelCase`, `snake_case`],
-            leadingUnderscore: `allowSingleOrDouble`,
+            format: null,
           },
           {
             selector: `objectLiteralProperty`,
-            format: [`PascalCase`, `UPPER_CASE`, `camelCase`, `snake_case`],
-            leadingUnderscore: `allowSingleOrDouble`,
-            trailingUnderscore: `allowSingleOrDouble`,
+            format: null,
           },
           {
             selector: `enum`,
@@ -267,7 +265,7 @@ module.exports = {
   ],
   settings: {
     react: {
-      version: `16.9.0`,
+      version: `18.2.0`,
     },
   },
 }

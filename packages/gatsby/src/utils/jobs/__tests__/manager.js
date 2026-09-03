@@ -1,6 +1,15 @@
 const path = require(`path`)
 const _ = require(`lodash`)
 const { slash } = require(`gatsby-core-utils`)
+const worker = require(`./fixtures/node_modules/gatsby-plugin-test/gatsby-worker`)
+const reporter = require(`gatsby-cli/lib/reporter`)
+const hasha = require(`hasha`)
+const fs = require(`fs-extra`)
+const pDefer = require(`p-defer`)
+const { uuid } = require(`gatsby-core-utils`)
+const timers = require(`timers`)
+const { MESSAGE_TYPES } = require(`../types`)
+
 let WorkerError
 let jobManager = null
 
@@ -17,41 +26,30 @@ jest.mock(`gatsby-cli/lib/reporter`, () => {
   }
 })
 
-jest.mock(
-  `/node_modules/gatsby-plugin-test/gatsby-worker`,
-  () => {
-    return {
-      TEST_JOB: jest.fn(),
-    }
-  },
-  { virtual: true }
-)
+jest.mock(`gatsby-core-utils`, () => {
+  const realCoreUtils = jest.requireActual(`gatsby-core-utils`)
 
-jest.mock(
-  `/gatsby-plugin-local/gatsby-worker`,
-  () => {
-    return {
-      TEST_JOB: jest.fn(),
-    }
-  },
-  { virtual: true }
-)
+  return {
+    ...realCoreUtils,
+    uuid: {
+      ...realCoreUtils.uuid,
+      v4: jest.fn(realCoreUtils.uuid.v4),
+    },
+  }
+})
 
-const worker = require(`/node_modules/gatsby-plugin-test/gatsby-worker`)
-const reporter = require(`gatsby-cli/lib/reporter`)
-const hasha = require(`hasha`)
-const fs = require(`fs-extra`)
-const pDefer = require(`p-defer`)
-const { uuid } = require(`gatsby-core-utils`)
-
-jest.spyOn(uuid, `v4`)
+jest.mock(`hasha`, () => jest.requireActual(`hasha`))
 
 fs.ensureDir = jest.fn().mockResolvedValue(true)
+
+const nodeModulesPluginPath = slash(
+  path.resolve(__dirname, `fixtures`, `node_modules`, `gatsby-plugin-test`)
+)
 
 const plugin = {
   name: `gatsby-plugin-test`,
   version: `1.0.0`,
-  resolve: `/node_modules/gatsby-plugin-test`,
+  resolve: nodeModulesPluginPath,
 }
 
 const createMockJob = (overrides = {}) => {
@@ -81,6 +79,7 @@ describe(`Jobs manager`, () => {
 
   beforeEach(() => {
     worker.TEST_JOB.mockReset()
+    worker.NEXT_JOB.mockReset()
     endActivity.mockClear()
     pDefer.mockClear()
     uuid.v4.mockClear()
@@ -130,7 +129,7 @@ describe(`Jobs manager`, () => {
           plugin: {
             name: `gatsby-plugin-test`,
             version: `1.0.0`,
-            resolve: `/node_modules/gatsby-plugin-test`,
+            resolve: nodeModulesPluginPath,
             isLocal: false,
           },
         })
@@ -167,7 +166,7 @@ describe(`Jobs manager`, () => {
     it(`should schedule a job`, async () => {
       const { enqueueJob } = jobManager
       worker.TEST_JOB.mockReturnValue({ output: `myresult` })
-      worker.NEXT_JOB = jest.fn().mockReturnValue({ output: `another result` })
+      worker.NEXT_JOB.mockReturnValue({ output: `another result` })
       const mockedJob = createInternalMockJob()
       const job1 = enqueueJob(mockedJob)
       const job2 = enqueueJob(
@@ -379,12 +378,14 @@ describe(`Jobs manager`, () => {
 
   describe(`IPC jobs`, () => {
     let listeners = []
-    beforeAll(() => {
-      jest.useFakeTimers()
-    })
 
     let originalProcessOn
     let originalSend
+    /**
+     * enqueueJob will run some async code before it sends IPC JOB_CREATED message
+     * This promise allow to await until that moment, to make assertions or execute more code
+     */
+    let waitForJobCreatedIPCSend
     beforeEach(() => {
       process.env.ENABLE_GATSBY_EXTERNAL_JOBS = `true`
       listeners = []
@@ -394,7 +395,19 @@ describe(`Jobs manager`, () => {
         listeners.push(cb)
       }
 
-      process.send = jest.fn()
+      waitForJobCreatedIPCSend = new Promise(resolve => {
+        process.send = jest.fn(msg => {
+          if (msg?.type === MESSAGE_TYPES.JOB_CREATED) {
+            resolve(msg.payload)
+          }
+        })
+      })
+
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers()
     })
 
     afterAll(() => {
@@ -409,6 +422,8 @@ describe(`Jobs manager`, () => {
       const jobArgs = createInternalMockJob()
 
       enqueueJob(jobArgs)
+
+      await waitForJobCreatedIPCSend
 
       jest.runAllTimers()
 
@@ -427,6 +442,9 @@ describe(`Jobs manager`, () => {
       const jobArgs = createInternalMockJob()
 
       const promise = enqueueJob(jobArgs)
+
+      await waitForJobCreatedIPCSend
+
       jest.runAllTimers()
 
       listeners[0]({
@@ -453,6 +471,8 @@ describe(`Jobs manager`, () => {
 
       const promise = enqueueJob(jobArgs)
 
+      await waitForJobCreatedIPCSend
+
       jest.runAllTimers()
 
       listeners[0]({
@@ -475,10 +495,9 @@ describe(`Jobs manager`, () => {
       worker.TEST_JOB.mockReturnValue({ output: `myresult` })
       const { enqueueJob } = jobManager
       const jobArgs = createInternalMockJob()
-
       const promise = enqueueJob(jobArgs)
 
-      jest.runAllTimers()
+      await waitForJobCreatedIPCSend
 
       listeners[0]({
         type: `JOB_NOT_WHITELISTED`,
@@ -487,7 +506,12 @@ describe(`Jobs manager`, () => {
         },
       })
 
-      jest.runAllTimers()
+      // Make sure that all the promises get resolved
+      await new Promise(resolve => {
+        // If this gets flaky, maybe a waitFor?
+        timers.setTimeout(resolve, 500)
+      })
+      jest.runOnlyPendingTimers()
 
       await expect(promise).resolves.toStrictEqual({ output: `myresult` })
       expect(worker.TEST_JOB).toHaveBeenCalledTimes(1)
@@ -495,17 +519,22 @@ describe(`Jobs manager`, () => {
 
     it(`should run the worker locally when it's a local plugin`, async () => {
       jest.useRealTimers()
-      const worker = require(`/gatsby-plugin-local/gatsby-worker`)
+      const localPluginPath = slash(
+        path.resolve(__dirname, `fixtures`, `gatsby-plugin-local`)
+      )
+      const localPluginWorkerPath = path.join(localPluginPath, `gatsby-worker`)
+      const worker = require(localPluginWorkerPath)
       const { enqueueJob, createInternalJob } = jobManager
       const jobArgs = createInternalJob(createMockJob(), {
         name: `gatsby-plugin-local`,
         version: `1.0.0`,
-        resolve: `/gatsby-plugin-local`,
+        resolve: localPluginPath,
       })
 
       await expect(enqueueJob(jobArgs)).resolves.toBeUndefined()
       expect(process.send).not.toHaveBeenCalled()
       expect(worker.TEST_JOB).toHaveBeenCalledTimes(1)
+      jest.useFakeTimers()
     })
 
     it(`shouldn't schedule a remote job when ipc is enabled and env variable is false`, async () => {
@@ -518,6 +547,7 @@ describe(`Jobs manager`, () => {
 
       expect(process.send).not.toHaveBeenCalled()
       expect(worker.TEST_JOB).toHaveBeenCalled()
+      jest.useFakeTimers()
     })
 
     it(`should warn when external jobs are enabled but ipc isn't used`, async () => {
@@ -535,6 +565,7 @@ describe(`Jobs manager`, () => {
 
       expect(reporter.warn).toHaveBeenCalledTimes(1)
       expect(worker.TEST_JOB).toHaveBeenCalled()
+      jest.useFakeTimers()
     })
   })
 })

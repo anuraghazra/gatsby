@@ -66,8 +66,8 @@ export async function getSslCert({
       ? absoluteOrDirectory(directory, caFile)
       : certPath
     return {
-      key: fs.readFileSync(keyPath),
-      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath, `utf-8`),
+      cert: fs.readFileSync(certPath, `utf-8`),
     }
   }
 
@@ -86,7 +86,7 @@ export async function getSslCert({
       const mkdtemp = fs.mkdtempSync(path.join(os.tmpdir(), `home-`))
       process.env.HOME = mkdtemp
     }
-    const getDevCert = require(`devcert`).certificateFor
+    const getDevCert = require(`@expo/devcert`).certificateFor
     const { caPath, key, cert } = await getDevCert(name, {
       getCaPath: true,
       skipCertutilInstall: false,
@@ -98,8 +98,8 @@ export async function getSslCert({
       process.env.NODE_EXTRA_CA_CERTS = caPath
     }
     return {
-      key,
-      cert,
+      key: key.toString(),
+      cert: cert.toString(),
     }
   } catch (err) {
     report.panic({

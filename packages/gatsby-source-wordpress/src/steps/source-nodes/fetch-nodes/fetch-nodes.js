@@ -4,7 +4,7 @@ import { formatLogMessage } from "~/utils/format-log-message"
 import { CREATED_NODE_IDS } from "~/constants"
 import { usingGatsbyV4OrGreater } from "~/utils/gatsby-version"
 
-import store from "~/store"
+import { getStore } from "~/store"
 import { getGatsbyApi, getPluginOptions } from "~/utils/get-gatsby-api"
 import chunk from "lodash/chunk"
 
@@ -14,6 +14,8 @@ import {
   setHardCachedNodes,
   setPersistentCache,
 } from "~/utils/cache"
+import { buildTypeName } from "../../create-schema-customization/helpers"
+import { needToTouchNodes } from "../../../utils/gatsby-features"
 
 /**
  * fetchWPGQLContentNodes
@@ -21,7 +23,7 @@ import {
  * fetches and paginates remote nodes by post type while reporting progress
  */
 export const fetchWPGQLContentNodes = async ({ queryInfo }) => {
-  const { pluginOptions, helpers } = store.getState().gatsbyApi
+  const { pluginOptions, helpers } = getStore().getState().gatsbyApi
   const { reporter } = helpers
   const {
     url,
@@ -32,7 +34,7 @@ export const fetchWPGQLContentNodes = async ({ queryInfo }) => {
 
   const typeName = typeInfo.nodesTypeName
 
-  store.dispatch.logger.createActivityTimer({
+  getStore().dispatch.logger.createActivityTimer({
     typeName,
     pluginOptions,
     reporter,
@@ -56,7 +58,7 @@ export const fetchWPGQLContentNodes = async ({ queryInfo }) => {
     allNodesOfContentType = [...allNodesOfContentType, ...contentNodes]
   }
 
-  store.dispatch.logger.stopActivityTimer({ typeName })
+  getStore().dispatch.logger.stopActivityTimer({ typeName })
 
   if (allNodesOfContentType && allNodesOfContentType.length) {
     return {
@@ -78,15 +80,21 @@ export const fetchWPGQLContentNodes = async ({ queryInfo }) => {
  * @returns {Array} Type info & GQL query strings
  */
 export const getContentTypeQueryInfos = () => {
-  const { nodeQueries } = store.getState().remoteSchema
+  const { nodeQueries } = getStore().getState().remoteSchema
   const queryInfos = Object.values(nodeQueries).filter(
     ({ settings }) => !settings.exclude
   )
   return queryInfos
 }
 
+let cachedGatsbyNodeTypeNames = null
+
 export const getGatsbyNodeTypeNames = () => {
-  const { typeMap } = store.getState().remoteSchema
+  if (cachedGatsbyNodeTypeNames) {
+    return cachedGatsbyNodeTypeNames
+  }
+
+  const { typeMap } = getStore().getState().remoteSchema
 
   const queryableTypenames = getContentTypeQueryInfos().map(
     query => query.typeInfo.nodesTypeName
@@ -108,7 +116,21 @@ export const getGatsbyNodeTypeNames = () => {
     []
   )
 
-  return [...new Set([...queryableTypenames, ...implementingNodeTypes])]
+  const allTypeNames = [
+    ...new Set([...queryableTypenames, ...implementingNodeTypes]),
+  ]
+
+  const allBuiltTypeNames = allTypeNames.map(typename =>
+    buildTypeName(typename)
+  )
+
+  const typeNameList = [...allTypeNames, ...allBuiltTypeNames]
+
+  if (typeNameList.length) {
+    cachedGatsbyNodeTypeNames = typeNameList
+  }
+
+  return typeNameList
 }
 
 /**
@@ -173,8 +195,8 @@ export const fetchAndCreateAllNodes = async () => {
   const activity = reporter.activityTimer(formatLogMessage(`fetching nodes`))
   activity.start()
 
-  store.subscribe(() => {
-    activity.setStatus(`${store.getState().logger.entityCount} total`)
+  getStore().subscribe(() => {
+    activity.setStatus(`${getStore().getState().logger.entityCount} total`)
   })
 
   let createdNodeIds
@@ -206,7 +228,9 @@ export const fetchAndCreateAllNodes = async () => {
     })
   }
 
-  // save the node id's so we can touch them on the next build
-  // so that we don't have to refetch all nodes
-  await setPersistentCache({ key: CREATED_NODE_IDS, value: createdNodeIds })
+  if (needToTouchNodes) {
+    // save the node id's so we can touch them on the next build
+    // so that we don't have to refetch all nodes
+    await setPersistentCache({ key: CREATED_NODE_IDS, value: createdNodeIds })
+  }
 }

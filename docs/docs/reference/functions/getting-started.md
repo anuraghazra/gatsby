@@ -48,11 +48,15 @@ Functions can be written in JavaScript or Typescript.
 ```ts:title=src/api/typescript.ts
 import { GatsbyFunctionRequest, GatsbyFunctionResponse } from "gatsby"
 
+interface ContactBody {
+  message: string
+}
+
 export default function handler(
-  req: GatsbyFunctionRequest,
+  req: GatsbyFunctionRequest<ContactBody>,
   res: GatsbyFunctionResponse
 ) {
-  res.send(`I am TYPESCRIPT`)
+  res.send({ title: `I am TYPESCRIPT`, message: req.body.message })
 }
 ```
 
@@ -60,7 +64,7 @@ export default function handler(
 
 Query strings and common body content types are automatically parsed and available at `req.query` and `req.body`
 
-Read more about [supported data formats](/docs/reference/functions/middleware-and-helpers).
+Read more about [supported data formats](/docs/reference/functions/middleware-and-helpers) for information about support for Buffer and Stream via a custom `config`.
 
 ```js:title=src/api/contact-form.js
 export default function contactFormHandler(req, res) {
@@ -209,4 +213,5 @@ Shadowing with functions works similar to how shadowing works in general. You ca
 
 ## Limitations
 
-- Bundling in native dependencies is not supported at the moment
+- Bundling in native dependencies is not supported at the moment.
+- Creating your own custom bundler (webpack/parcel) config is not supported at the moment. You can however pre-bundle by using a "prebuild" `package.json` script command to accomplish custom configuration.

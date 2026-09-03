@@ -7,7 +7,6 @@ const EventEmitter = require(`events`)
 const fetch = require(`node-fetch`)
 const fs = require(`fs-extra`)
 const path = require(`path`)
-const cpy = require(`cpy`)
 const { first, last } = require(`lodash`)
 // const { groupBy, filter } = require(`lodash`)
 const joi = require(`joi`)
@@ -133,6 +132,12 @@ const commonAssertions = events => {
 
       joi.object({
         type: joi.string().required().valid(`ENGINES_READY`),
+        timestamp: joi.string().required(),
+      }),
+
+      joi.object({
+        type: joi.string().required().valid(`GATSBY_CONFIG_KEYS`),
+        payload: joi.object().required(),
         timestamp: joi.string().required(),
       }),
 
@@ -339,7 +344,7 @@ describe(`develop`, () => {
     const clearEvents = () => {
       events.splice(0, events.length)
     }
-    beforeAll(async done => {
+    beforeAll(done => {
       gatsbyProcess = spawn(process.execPath, [gatsbyBin, `develop`], {
         stdio: [defaultStdio, defaultStdio, defaultStdio, `ipc`],
         env: {
@@ -374,7 +379,7 @@ describe(`develop`, () => {
 
     describe(`code change`, () => {
       beforeAll(() => {
-        return cpy(
+        return fs.cp(
           path.join(__dirname, "../src/pages/index.js"),
           path.join(__dirname, "../original/"),
           {
@@ -384,7 +389,7 @@ describe(`develop`, () => {
       })
 
       describe(`invalid`, () => {
-        beforeAll(async done => {
+        beforeAll(done => {
           clearEvents()
 
           const codeWithError = `import React from "react"
@@ -412,10 +417,7 @@ describe(`develop`, () => {
       }
     \`
     `
-          await fs.writeFile(
-            require.resolve(`../src/pages/index.js`),
-            codeWithError
-          )
+          fs.writeFile(require.resolve(`../src/pages/index.js`), codeWithError)
 
           eventEmitter.once(`done`, () => {
             done()
@@ -428,9 +430,9 @@ describe(`develop`, () => {
         beforeAll(async done => {
           clearEvents()
 
-          await cpy(
+          await fs.cp(
             path.join(__dirname, "../original/index.js"),
-            path.join(__dirname, "../src/pages/"),
+            path.join(__dirname, "../src/pages/index.js"),
             {
               overwrite: true,
             }
@@ -446,10 +448,10 @@ describe(`develop`, () => {
     })
     describe(`data change`, () => {
       describe(`via refresh webhook`, () => {
-        beforeAll(async done => {
+        beforeAll(done => {
           clearEvents()
 
-          await fetch(`http://localhost:8000/__refresh`, {
+          fetch(`http://localhost:8000/__refresh`, {
             method: `POST`,
             headers: {
               "Content-Type": `application/json`,
@@ -468,10 +470,10 @@ describe(`develop`, () => {
         commonAssertionsForSuccess(events)
       })
       describe(`with stateful plugin (i.e. Sanity)`, () => {
-        beforeAll(async done => {
+        beforeAll(done => {
           clearEvents()
 
-          await fetch(`http://localhost:8000/___statefulUpdate/`, {
+          fetch(`http://localhost:8000/___statefulUpdate/`, {
             method: `POST`,
             headers: {
               "Content-Type": `application/json`,

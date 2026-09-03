@@ -1,5 +1,5 @@
-import store from "~/store"
-import { findTypeName } from "~/steps/create-schema-customization/helpers"
+import { getStore } from "~/store"
+import { findNamedTypeName } from "~/steps/create-schema-customization/helpers"
 
 const buildReusableFragments = ({ fragments }) =>
   Object.values(fragments)
@@ -111,7 +111,7 @@ export const buildSelectionSet = (
 
   const {
     remoteSchema: { typeMap },
-  } = store.getState()
+  } = getStore().getState()
 
   const buildFieldSelectionSet = field => {
     if (typeof field === `string`) {
@@ -159,7 +159,7 @@ export const buildSelectionSet = (
         }
       `
     } else if (fieldName) {
-      const fullFieldType = typeMap.get(findTypeName(fieldType))
+      const fullFieldType = typeMap.get(findNamedTypeName(fieldType))
 
       // if this field has subfields but we didn't build a selection set for it
       // we shouldn't fetch this field. This can happen when we have self referencing types that are limited by the schema.circularQueryLimit plugin option.

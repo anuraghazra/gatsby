@@ -2,6 +2,19 @@ const { onCreateWebpackConfig, onCreateBabelConfig } = require(`../gatsby-node`)
 const PreactRefreshPlugin = require(`@prefresh/webpack`)
 const ReactRefreshWebpackPlugin = require(`@pmmmwh/react-refresh-webpack-plugin`)
 
+const FRAMEWORK_BUNDLES_GATSBY = [
+  `react`,
+  `react-dom`,
+  `scheduler`,
+  `prop-types`,
+]
+
+const FRAMEWORK_BUNDLES_REGEX_GATSBY = new RegExp(
+  `(?<!node_modules.*)[\\\\/]node_modules[\\\\/](${FRAMEWORK_BUNDLES_GATSBY.join(
+    `|`
+  )})[\\\\/]`
+)
+
 describe(`gatsby-plugin-preact`, () => {
   it(`sets the correct webpack config in development`, () => {
     const getConfig = jest.fn(() => {
@@ -29,7 +42,9 @@ describe(`gatsby-plugin-preact`, () => {
       resolve: {
         alias: {
           react: `preact/compat`,
+          "react-dom/test-utils": `preact/test-utils`,
           "react-dom": `preact/compat`,
+          "react/jsx-runtime": `preact/jsx-runtime`,
         },
       },
     })
@@ -40,7 +55,7 @@ describe(`gatsby-plugin-preact`, () => {
       name: `@prefresh/babel-plugin`,
       stage: `develop`,
     })
-    expect(actions.replaceWebpackConfig).toHaveBeenCalledTimes(1)
+    expect(actions.replaceWebpackConfig).toHaveBeenCalledTimes(2)
     expect(actions.replaceWebpackConfig).toHaveBeenCalledWith({
       plugins: [],
       entry: {
@@ -50,7 +65,6 @@ describe(`gatsby-plugin-preact`, () => {
   })
 
   it(`sets the correct webpack config in production`, () => {
-    const FRAMEWORK_BUNDLES = [`react`, `react-dom`, `scheduler`, `prop-types`]
     const getConfig = jest.fn(() => {
       return {
         optimization: {
@@ -62,14 +76,20 @@ describe(`gatsby-plugin-preact`, () => {
               framework: {
                 chunks: `all`,
                 name: `framework`,
-                // This regex ignores nested copies of framework libraries so they're bundled with their issuer.
-                test: new RegExp(
-                  `(?<!node_modules.*)[\\\\/]node_modules[\\\\/](${FRAMEWORK_BUNDLES.join(
-                    `|`
-                  )})[\\\\/]`
-                ),
+                // Mirrors what we have in gatsby/../webpack.config.js
+                test: module => {
+                  if (
+                    module?.rawRequest === `react-dom/server` ||
+                    module?.rawRequest?.includes(`/react-dom-server`)
+                  ) {
+                    return false
+                  }
+
+                  return FRAMEWORK_BUNDLES_REGEX_GATSBY.test(
+                    module.nameForCondition()
+                  )
+                },
                 priority: 40,
-                // Don't let webpack eliminate this chunk (prevents this chunk from becoming a part of the commons chunk)
                 enforce: true,
               },
             },
@@ -94,17 +114,39 @@ describe(`gatsby-plugin-preact`, () => {
       resolve: {
         alias: {
           react: `preact/compat`,
+          "react-dom/test-utils": `preact/test-utils`,
           "react-dom": `preact/compat`,
+          "react/jsx-runtime": `preact/jsx-runtime`,
         },
       },
     })
 
-    expect(getConfig).toHaveBeenCalledTimes(1)
+    expect(getConfig).toHaveBeenCalledTimes(2)
     expect(actions.setBabelPlugin).toHaveBeenCalledTimes(0)
-    expect(actions.replaceWebpackConfig).toHaveBeenCalledTimes(1)
+    expect(actions.replaceWebpackConfig).toHaveBeenCalledTimes(2)
     expect(actions.replaceWebpackConfig).toMatchInlineSnapshot(`
       [MockFunction] {
         "calls": Array [
+          Array [
+            Object {
+              "optimization": Object {
+                "splitChunks": Object {
+                  "cacheGroups": Object {
+                    "default": false,
+                    "framework": Object {
+                      "chunks": "all",
+                      "enforce": true,
+                      "name": "framework",
+                      "priority": 40,
+                      "test": /\\(\\?<!node_modules\\.\\*\\)\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]\\(preact\\|react\\|react-dom\\|scheduler\\|prop-types\\)\\[\\\\\\\\/\\]/,
+                    },
+                    "vendors": false,
+                  },
+                  "chunks": "all",
+                },
+              },
+            },
+          ],
           Array [
             Object {
               "optimization": Object {
@@ -127,6 +169,10 @@ describe(`gatsby-plugin-preact`, () => {
           ],
         ],
         "results": Array [
+          Object {
+            "type": "return",
+            "value": undefined,
+          },
           Object {
             "type": "return",
             "value": undefined,

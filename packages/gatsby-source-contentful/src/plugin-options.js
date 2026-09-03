@@ -9,9 +9,11 @@ const defaultOptions = {
   environment: `master`,
   downloadLocal: false,
   localeFilter: () => true,
+  contentTypeFilter: () => true,
   pageLimit: DEFAULT_PAGE_LIMIT,
   useNameForId: true,
   enableTags: false,
+  typePrefix: `Contentful`,
 }
 
 const createPluginConfig = pluginOptions => {

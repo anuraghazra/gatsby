@@ -3,7 +3,7 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/gatsbyjs/gatsby/blob/master/packages/gatsby-source-wordpress/LICENSE">
+  <a href="https://github.com/gatsbyjs/gatsby/blob/master/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Gatsby and gatsby-source-wordpress are released under the MIT license." />
   </a>
   <a href="https://www.npmjs.com/package/gatsby-source-wordpress">
@@ -17,9 +17,6 @@
   </a>
   <a href="https://gatsbyjs.com/contributing/how-to-contribute/">
     <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome!" />
-  </a>
-  <a href="https://twitter.com/intent/follow?screen_name=gatsbyjs">
-    <img src="https://img.shields.io/twitter/follow/gatsbyjs.svg?label=Follow%20@gatsbyjs" alt="Follow @gatsbyjs" />
   </a>
 </p>
 

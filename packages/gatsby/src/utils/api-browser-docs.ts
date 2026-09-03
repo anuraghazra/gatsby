@@ -115,10 +115,10 @@ export const shouldUpdateScroll = true
 export const registerServiceWorker = true
 
 /**
- * Allow a plugin to wrap the page element.
+ * Can be used to wrap each page element.
  *
  * This is useful for setting wrapper components around pages that won't get
- * unmounted on page changes. For setting Provider components, use [wrapRootElement](#wrapRootElement).
+ * unmounted on page changes. For setting context providers, use [wrapRootElement](#wrapRootElement).
  *
  * _Note:_
  * There is an equivalent hook in Gatsby's [SSR API](/docs/ssr-apis/#wrapPageElement).
@@ -142,9 +142,9 @@ export const registerServiceWorker = true
 export const wrapPageElement = true
 
 /**
- * Allow a plugin to wrap the root element.
+ * Can be used to the wrap the root element.
  *
- * This is useful to set up any Provider components that will wrap your application.
+ * This is useful to set up any context providers that will wrap your application.
  * For setting persistent UI elements around pages use [wrapPageElement](#wrapPageElement).
  *
  * _Note:_
@@ -203,19 +203,21 @@ export const onPostPrefetchPathname = true
 export const disableCorePrefetching = true
 
 /**
- * Allow a plugin to replace the `ReactDOM.render`/`ReactDOM.hydrate` function call by a custom renderer.
+ * Allow a plugin to replace the `ReactDOM.createRoot`/`render` function calls with a custom renderer.
  * @param {emptyArg} _
  * @param {pluginOptions} pluginOptions
- * @returns {Function} This method should return a function with same signature as `ReactDOM.render()`
+ * @returns {Function} This method should return a function with same signature as `ReactDOM.createRoot`/`render`
  *
- * _Note:_ it's very important to call the `callback` after rendering, otherwise Gatsby will not be able to call `onInitialClientRender`
+ * _Note:_
+ * Refer to React's documentation on [`ReactDOM.createRoot`/`render`](https://reactjs.org/docs/react-dom-client.html#createroot) for more information.
+ * Note that `ReactDOM.createRoot`/`render` is only available in React 18 or greater, prior versions should use [`ReactDOM.render`](https://reactjs.org/docs/react-dom.html#render).
  * @example
  * exports.replaceHydrateFunction = () => {
- *   return (element, container, callback) => {
- *     console.log("rendering!");
- *     ReactDOM.render(element, container, callback);
- *   };
- * };
+ *   return (element, container) => {
+ *     const root = ReactDOM.createRoot(container)
+ *     root.render(element)
+ *   }
+ * }
  */
 export const replaceHydrateFunction = true
 
@@ -259,3 +261,33 @@ export const onServiceWorkerActive = true
  * @param {pluginOptions} pluginOptions
  */
 export const onServiceWorkerRedundant = true
+
+/**
+ * Called when React catches an error during rendering, in a lifecycle method, or in the constructor of the whole tree.
+ * This corresponds to React 19's `onCaughtError` root option.
+ * @param {object} $0
+ * @param {Error} $0.error The error that was caught.
+ * @param {object} $0.errorInfo Additional error information containing componentStack.
+ * @param {pluginOptions} pluginOptions
+ * @example
+ * exports.onCaughtError = ({ error, errorInfo }) => {
+ *   console.log('Caught error:', error.message)
+ *   // Log to external error reporting service
+ * }
+ */
+export const onCaughtError = true
+
+/**
+ * Called when React receives an error that was thrown by an asynchronous event (e.g., setTimeout, requestIdleCallback, etc).
+ * This corresponds to React 19's `onUncaughtError` root option.
+ * @param {object} $0
+ * @param {Error} $0.error The error that was thrown.
+ * @param {object} $0.errorInfo Additional error information containing componentStack.
+ * @param {pluginOptions} pluginOptions
+ * @example
+ * exports.onUncaughtError = ({ error, errorInfo }) => {
+ *   console.error('Uncaught error:', error.message)
+ *   // Log to external error reporting service
+ * }
+ */
+export const onUncaughtError = true

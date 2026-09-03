@@ -11,8 +11,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "downlevelIteration": true
     // "jsxFactory": "createElement"
   },
-  "files": ["./src/global.d.ts", "./src/index.ts", "./src/index.browser.ts"]
+  "files": ["./src/global.ts", "./src/index.ts", "./src/index.browser.ts"]
 }

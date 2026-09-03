@@ -3,6 +3,7 @@ import { IPluginOptions } from "~/models/gatsby-api"
 import { formatLogMessage } from "~/utils/format-log-message"
 import { invokeAndCleanupLeftoverPreviewCallbacks } from "../steps/preview/cleanup"
 import { CODES } from "./report"
+import { IGatsbyApiHook, wrapApiHook } from "~/store"
 
 export type Step = (
   helpers?: GatsbyNodeApiHelpers,
@@ -76,7 +77,7 @@ const runSteps = async (
  * Takes in a pipe delimited string of Gatsby Node API names and returns the first supported API name as a string
  *
  * Example input: "onPluginInit|unstable_onPluginInit"
- * Example output: "unstable_onPluginInit"
+ * Example output: "onPluginInit"
  */
 const findApiName = (initialApiNameString: string): string => {
   if (!initialApiNameString.includes(`|`)) {
@@ -108,30 +109,12 @@ const findApiName = (initialApiNameString: string): string => {
   )
 }
 
-const runApiSteps =
-  (steps: Array<Step>, apiName: string) =>
-  async (
-    helpers: GatsbyNodeApiHelpers,
-    pluginOptions: IPluginOptions
-  ): Promise<void> =>
-    runSteps(steps, helpers, pluginOptions, apiName)
-
-const runApisInSteps = (nodeApis: {
-  [apiName: string]: Array<Step> | Step
-}): { [apiName: string]: Promise<void> | void } =>
-  Object.entries(nodeApis).reduce(
-    (gatsbyNodeExportObject, [apiName, apiSteps]) => {
-      const normalizedApiName = findApiName(apiName)
-
-      return {
-        ...gatsbyNodeExportObject,
-        [normalizedApiName]:
-          typeof apiSteps === `function`
-            ? apiSteps
-            : runApiSteps(apiSteps, normalizedApiName),
-      }
-    },
-    {}
+const runApiSteps = (steps: Array<Step>, apiName: string): IGatsbyApiHook =>
+  wrapApiHook(
+    async (
+      helpers: GatsbyNodeApiHelpers,
+      pluginOptions: IPluginOptions
+    ): Promise<void> => runSteps(steps, helpers, pluginOptions, apiName)
   )
 
-export { runSteps, runApisInSteps }
+export { runSteps, runApiSteps, findApiName }

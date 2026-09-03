@@ -8,13 +8,44 @@ import {
   Store,
 } from "redux"
 import _ from "lodash"
-import telemetry from "gatsby-telemetry"
 
 import { mett } from "../utils/mett"
 import thunk, { ThunkMiddleware, ThunkAction, ThunkDispatch } from "redux-thunk"
-import * as reducers from "./reducers"
+import * as rawReducers from "./reducers"
 import { writeToCache, readFromCache } from "./persist"
 import { IGatsbyState, ActionsUnion, GatsbyStateKeys } from "./types"
+
+const persistedReduxKeys = [
+  `nodes`,
+  `typeOwners`,
+  `statefulSourcePlugins`,
+  `status`,
+  `components`,
+  `jobsV2`,
+  `staticQueryComponents`,
+  `webpackCompilationHash`,
+  `pageDataStats`,
+  `pages`,
+  `staticQueriesByTemplate`,
+  `pendingPageDataWrites`,
+  `queries`,
+  `html`,
+  `slices`,
+  `slicesByTemplate`,
+]
+
+const reducers = persistedReduxKeys.reduce((acc, key) => {
+  const rawReducer = rawReducers[key]
+  acc[key] = function (state, action): any {
+    if (action.type === `RESTORE_CACHE` && action.payload[key]) {
+      return action.payload[key]
+    } else {
+      return rawReducer(state, action)
+    }
+  }
+
+  return acc
+}, rawReducers)
 
 // Create event emitter for actions
 export const emitter = mett()
@@ -42,16 +73,8 @@ export const readState = (): IGatsbyState => {
     // runs gatsby the first time after upgrading.
     delete state[`jsonDataPaths`]
 
-    telemetry.trackCli(`CACHE_STATUS`, {
-      cacheStatus: `WARM`,
-    })
-
     return state
   } catch (e) {
-    telemetry.trackCli(`CACHE_STATUS`, {
-      cacheStatus: `COLD`,
-    })
-
     return {} as IGatsbyState
   }
 }
@@ -75,12 +98,21 @@ export type GatsbyReduxStore = Store<IGatsbyState> & {
   dispatch: ThunkDispatch<IGatsbyState, any, ActionsUnion> & IMultiDispatch
 }
 
-export const configureStore = (initialState: IGatsbyState): GatsbyReduxStore =>
-  createStore(
+export const configureStore = (
+  initialState: IGatsbyState
+): GatsbyReduxStore => {
+  const store = createStore(
     combineReducers<IGatsbyState>({ ...reducers }),
     initialState,
     applyMiddleware(thunk as ThunkMiddleware<IGatsbyState, ActionsUnion>, multi)
   )
+
+  store.dispatch({
+    type: `INIT`,
+  })
+
+  return store
+}
 
 export const store: GatsbyReduxStore = configureStore(
   process.env.GATSBY_WORKER_POOL_WORKER ? ({} as IGatsbyState) : readState()
@@ -108,20 +140,9 @@ export const saveState = (): void => {
 
   const state = store.getState()
 
-  return writeToCache({
-    nodes: state.nodes,
-    status: state.status,
-    components: state.components,
-    jobsV2: state.jobsV2,
-    staticQueryComponents: state.staticQueryComponents,
-    webpackCompilationHash: state.webpackCompilationHash,
-    pageDataStats: state.pageDataStats,
-    pages: state.pages,
-    pendingPageDataWrites: state.pendingPageDataWrites,
-    staticQueriesByTemplate: state.staticQueriesByTemplate,
-    queries: state.queries,
-    html: state.html,
-  })
+  const sliceOfStateToPersist = _.pick(state, persistedReduxKeys)
+
+  return writeToCache(sliceOfStateToPersist)
 }
 
 export const savePartialStateToDisk = (

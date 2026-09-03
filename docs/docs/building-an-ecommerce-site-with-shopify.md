@@ -56,7 +56,7 @@ Open the Gatsby GraphiQL interface by visiting `http://localhost:8000/___graphql
 
 ```graphql
 {
-  allShopifyProduct(sort: { fields: [title] }) {
+  allShopifyProduct(sort: { title: ASC }) {
     edges {
       node {
         title
@@ -106,7 +106,7 @@ export default ProductsPage
 
 export const query = graphql`
   {
-    allShopifyProduct(sort: { fields: [title] }) {
+    allShopifyProduct(sort: { title: ASC }) {
       edges {
         node {
           title
@@ -127,7 +127,7 @@ export const query = graphql`
 
 ## Generating a page for each product
 
-You can [programmatically create pages](/docs/tutorial/part-7/) in Gatsby for every product in your Shopify store.
+You can [programmatically create pages](/docs/tutorial/getting-started/part-7/) in Gatsby for every product in your Shopify store.
 
 Create a template for your product pages by adding a new file, `/src/templates/product.js`.
 
@@ -158,7 +158,7 @@ exports.createPages = async ({ graphql, actions }) => {
   // Query for all products in Shopify
   const result = await graphql(`
     query {
-      allShopifyProduct(sort: { fields: [title] }) {
+      allShopifyProduct(sort: { title: ASC }) {
         edges {
           node {
             title

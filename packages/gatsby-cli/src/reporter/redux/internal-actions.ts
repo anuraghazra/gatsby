@@ -1,5 +1,4 @@
 import { uuid } from "gatsby-core-utils"
-import { trackCli } from "gatsby-telemetry"
 import signalExit from "signal-exit"
 import { Dispatch } from "redux"
 
@@ -29,8 +28,7 @@ import {
   getElapsedTimeMS,
   getGlobalStatus,
 } from "./utils"
-import { IStructuredError } from "../../structured-errors/types"
-import { ErrorCategory } from "../../structured-errors/error-map"
+import { IStructuredError, ErrorCategory } from "../../structured-errors/types"
 import { IRenderPageArgs } from "../types"
 
 const ActivityStatusToLogLevel = {
@@ -243,11 +241,6 @@ export const endActivity = ({
       },
     })
   } else if (activity.status === ActivityStatuses.InProgress) {
-    trackCli(`ACTIVITY_DURATION`, {
-      name: activity.text,
-      duration: Math.round(durationMS),
-    })
-
     if (activity.errored) {
       status = ActivityStatuses.Failed
     }

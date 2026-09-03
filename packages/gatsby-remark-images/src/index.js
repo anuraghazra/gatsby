@@ -25,6 +25,7 @@ const supportedExtensions = {
   webp: true,
   tif: true,
   tiff: true,
+  avif: true,
 }
 
 // If the image is relative (not hosted elsewhere)
@@ -43,6 +44,7 @@ module.exports = (
     reporter,
     cache,
     compiler,
+    getRemarkFileDependency,
   },
   pluginOptions
 ) => {
@@ -142,7 +144,31 @@ module.exports = (
   ) {
     // Check if this markdownNode has a File parent. This plugin
     // won't work if the image isn't hosted locally.
-    const parentNode = getNode(markdownNode.parent)
+    let parentNode = getNode(markdownNode.parent)
+    // check if the parent node is a File node, otherwise go up the chain and
+    // search for the closest parent File node. This is necessary in case
+    // you have markdown in child nodes (e.g. gatsby-plugin-json-remark).
+    if (
+      parentNode &&
+      parentNode.internal &&
+      parentNode.internal.type !== `File`
+    ) {
+      let tempParentNode = parentNode
+      while (
+        tempParentNode &&
+        tempParentNode.internal &&
+        tempParentNode.internal.type !== `File`
+      ) {
+        tempParentNode = getNode(tempParentNode.parent)
+      }
+      if (
+        tempParentNode &&
+        tempParentNode.internal &&
+        tempParentNode.internal.type === `File`
+      ) {
+        parentNode = tempParentNode
+      }
+    }
     let imagePath
     if (parentNode && parentNode.dir) {
       imagePath = slash(path.join(parentNode.dir, getImageInfo(node.url).url))
@@ -150,12 +176,22 @@ module.exports = (
       return null
     }
 
-    const imageNode = _.find(files, file => {
-      if (file && file.absolutePath) {
-        return file.absolutePath === imagePath
-      }
-      return null
-    })
+    let imageNode
+    if (getRemarkFileDependency) {
+      imageNode = await getRemarkFileDependency({
+        absolutePath: {
+          eq: imagePath,
+        },
+      })
+    } else {
+      // Legacy: no context, slower version of image query
+      imageNode = _.find(files, file => {
+        if (file && file.absolutePath) {
+          return file.absolutePath === imagePath
+        }
+        return null
+      })
+    }
 
     if (!imageNode || !imageNode.absolutePath) {
       return resolve()
@@ -190,7 +226,7 @@ module.exports = (
           overWrites.alt ? overWrites.alt : node.alt ? node.alt : defaultAlt
         )
 
-    const title = node.title ? _.escape(node.title) : alt
+    const title = node.title ? _.escape(node.title) : ``
 
     const loading = options.loading
 
@@ -312,32 +348,7 @@ module.exports = (
       `.trim()
     }
 
-    let placeholderImageData = fluidResult.base64
-
-    // if options.tracedSVG is enabled generate the traced SVG and use that as the placeholder image
-    if (options.tracedSVG) {
-      let args = typeof options.tracedSVG === `object` ? options.tracedSVG : {}
-
-      // Translate Potrace constants (e.g. TURNPOLICY_LEFT, COLOR_AUTO) to the values Potrace expects
-      const { Potrace } = require(`potrace`)
-      const argsKeys = Object.keys(args)
-      args = argsKeys.reduce((result, key) => {
-        const value = args[key]
-        result[key] = Potrace.hasOwnProperty(value) ? Potrace[value] : value
-        return result
-      }, {})
-
-      const tracedSVG = await traceSVG({
-        file: imageNode,
-        args,
-        fileArgs: args,
-        cache,
-        reporter,
-      })
-
-      // Escape single quotes so the SVG data can be used in inline style attribute with single quotes
-      placeholderImageData = tracedSVG.replace(/'/g, `\\'`)
-    }
+    const placeholderImageData = fluidResult.base64
 
     const ratio = `${(1 / fluidResult.aspectRatio) * 100}%`
 

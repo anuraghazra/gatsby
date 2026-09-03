@@ -48,7 +48,7 @@ Take a project powered by Shopify as an example. You have your listing of all pr
 
 ![Side-by-side view of a Shopify store instance on the left, and the preview on the right. At the bottom the terminal shows that after the change only one page was rebuilt](./incremental-builds-in-oss.jpg)
 
-The screenshot is taken from a talk about Gatsby v3 at [GatsbyConf](https://gatsbyconf.com/). You can view the video showcasing this feature on [YouTube](https://www.youtube.com/watch?v=tO-5qFa_hH8).
+The screenshot is taken from a talk about Gatsby v3 at GatsbyConf. You can view the video showcasing this feature on [YouTube](https://www.youtube.com/watch?v=tO-5qFa_hH8).
 
 ### How does it work?
 
@@ -128,7 +128,7 @@ Please refer to React's own [release notes](https://reactjs.org/blog/2020/10/20/
 
 The minimum version of Gatsby is now 16.9.0 to support Fast Refresh, React Hooks, and Suspense by default. We've also made sure we're 100% compatible with React 17. To use the new [React JSX transform](https://reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html) have a look at the [`babel-preset-gatsby`](#babel-preset-gatsby) section below.
 
-With this change, we'll be adding more experiments to support [Concurrent mode](https://reactjs.org/blog/2019/11/06/building-great-user-experiences-with-concurrent-mode-and-suspense.html) and [React Server Components](https://reactjs.org/blog/2020/12/21/data-fetching-with-react-server-components.html) in future releases.
+With this change, we'll be adding more experiments to support [Concurrent mode](https://reactjs.org/blog/2019/11/06/building-great-user-experiences-with-concurrent-mode-and-suspense.html) and [React server components](https://reactjs.org/blog/2020/12/21/data-fetching-with-react-server-components.html) in future releases.
 
 ## GraphQL 15
 
@@ -211,7 +211,7 @@ Gatsby Cloud now includes Hosting for all your Gatsby projects. `gatsby-plugin-g
 If you're using Gatsby v2 please install `gatsby-plugin-gatsby-cloud@^1.0.0`. For Gatsby v3 we’ve bumped `gatsby-plugin-gatsby-cloud` to `2.0.0`. It should
 be a straight-forward update, no additional changes from you are required.
 
-Read more about `gatsby-plugin-gatsby-cloud` at the [README](/packages/gatsby-plugin-gatsby-cloud/).
+Read more about `gatsby-plugin-gatsby-cloud` at the [README](/deprecated-packages/gatsby-plugin-gatsby-cloud/).
 
 ## Miscellaneous changes in plugins
 
